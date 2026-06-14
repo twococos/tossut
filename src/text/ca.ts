@@ -41,6 +41,9 @@ export const ca = {
     recipes: "Receptes",
     checklists: "Checklists",
     settingsAria: "Ajustos",
+    settings: "Ajustos",
+    history: "Historial",
+    more: "Més",
     offlineBanner: (n: number) =>
       `Sense connexió · ${n} ${n === 1 ? "canvi pendent" : "canvis pendents"} de sincronitzar`,
   },

@@ -121,7 +121,7 @@ export function Documents() {
         <EmptyState icon={FileText} text={t.documents.empty} />
       ) : showFolders ? (
         // Vista de carpetes per categoria.
-        <ul className="grid grid-cols-2 gap-2">
+        <ul className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
           {DOC_CATEGORIES.filter((c) => (byCategory.get(c)?.length ?? 0) > 0).map((c) => {
             const docs = byCategory.get(c) ?? [];
             const now = nowISO();
@@ -175,7 +175,7 @@ export function Documents() {
               text={searching ? t.documents.noResults : t.documents.emptyCategory}
             />
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="grid gap-2 lg:grid-cols-2 lg:items-start">
               {listed.map((d) => (
                 <li key={d.id}>
                   <DocumentCard

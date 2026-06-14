@@ -39,7 +39,7 @@ export function Faults() {
       {active.length === 0 ? (
         <EmptyState icon={AlertTriangle} text={t.faults.empty} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 lg:grid-cols-2 lg:items-start">
           {active.map((f) => (
             <li key={f.id}>
               <FaultCard

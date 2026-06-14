@@ -69,12 +69,12 @@ export function ObjectsList() {
       {filtered.length === 0 ? (
         <EmptyState icon={Package} text={t.objects.empty} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
           {filtered.map((o) => (
             <li key={o.id}>
               <button
                 onClick={() => setDetail(o)}
-                className="flex w-full items-center justify-between rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
+                className="flex h-full w-full items-center justify-between rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
               >
                 <span className="flex items-center gap-2">
                   <span className="flex h-8 w-8 items-center justify-center">

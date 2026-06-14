@@ -47,12 +47,12 @@ export function Recipes() {
       {recipes.length === 0 ? (
         <EmptyState icon={BookOpen} text={t.recipes.empty} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
           {recipes.map((r) => (
             <li key={r.id}>
               <button
                 onClick={() => (editLocked ? setViewing(r) : setEditing(r))}
-                className="flex w-full items-center justify-between rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
+                className="flex h-full w-full items-center justify-between rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
               >
                 <span className="font-semibold">{r.title}</span>
                 <span className="flex items-center gap-1 text-xs text-boat-500">

@@ -20,11 +20,11 @@ export function Expiring() {
       {expiring.length === 0 ? (
         <EmptyState icon={Salad} text={t.expiring.empty} />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
           {expiring.map((e) => (
             <li key={e.object.id}>
-              <button onClick={() => setDetail(e.object)} className="w-full text-left active:scale-[0.98]">
-                <Card className="flex items-center justify-between">
+              <button onClick={() => setDetail(e.object)} className="h-full w-full text-left active:scale-[0.98]">
+                <Card className="flex h-full items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="flex h-8 w-8 items-center justify-center">
                       <ObjectIcon icon={e.object.icon} size={24} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useIsLargeScreen } from '@/hooks/useMediaQuery';
 
 interface SheetProps {
   open: boolean;
@@ -36,7 +37,13 @@ type Phase = 'enter' | 'settled' | 'drag' | 'return' | 'closing' | 'closing-drag
  *  - amunt: es permet amb resistència (efecte elàstic) i torna amb bounce en deixar anar.
  * Clicar fora també tanca amb slide-down. L'API es manté igual.
  */
-export function Sheet({ open, onClose, title, children }: SheetProps) {
+export function Sheet(props: SheetProps) {
+  const isLarge = useIsLargeScreen();
+  return isLarge ? <CenteredModal {...props} /> : <BottomSheet {...props} />;
+}
+
+/** Bottom sheet arrossegable (mòbil). Comportament original sense canvis. */
+function BottomSheet({ open, onClose, title, children }: SheetProps) {
   // Mantenim el Sheet muntat durant l'animació de sortida.
   const [rendered, setRendered] = useState(open);
   const [phase, setPhase] = useState<Phase>('enter');
@@ -175,6 +182,65 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
           )}
           {frozen.current.children}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Modal centrat (pantalla gran). Mateixa API que el bottom sheet però ancorat al centre,
+ * sense gest de drag i tancable amb clic al fons o amb la tecla Escape. Hi arriben tots els
+ * usos de `Sheet` sense canviar res al consumidor.
+ */
+function CenteredModal({ open, onClose, title, children }: SheetProps) {
+  // Es manté muntat durant l'animació de sortida (fade-out).
+  const [rendered, setRendered] = useState(open);
+  const [closing, setClosing] = useState(false);
+  // Mateix patró que el bottom sheet: congelem l'últim contingut no buit perquè la sortida
+  // no "parpellegi" quan el pare buida els children en tancar.
+  const frozen = useRef<{ children: ReactNode; title?: string }>({ children, title });
+  if (open) frozen.current = { children, title };
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      setClosing(false);
+    } else if (rendered) {
+      setClosing(true);
+      const t = setTimeout(() => setRendered(false), 200);
+      return () => clearTimeout(t);
+    }
+  }, [open, rendered]);
+
+  // Tancar amb Escape mentre és obert.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!rendered) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className={`absolute inset-0 bg-black/40 ${
+          closing ? 'opacity-0 transition-opacity duration-200' : 'animate-fade-in'
+        }`}
+        onClick={onClose}
+      />
+      <div
+        className={`relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-4 pb-6 shadow-xl ${
+          closing ? 'opacity-0 transition-opacity duration-200' : 'animate-scale-in'
+        }`}
+      >
+        {frozen.current.title && (
+          <h2 className="mb-3 text-xl font-bold text-boat-900">{frozen.current.title}</h2>
+        )}
+        {frozen.current.children}
       </div>
     </div>
   );

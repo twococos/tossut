@@ -57,27 +57,40 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-5 pt-2">
-      {/* Botons grans principals */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Botons grans principals. En pantalla gran les accions destacades són Cuinar +
+          Comprar (els botons d'accés a la resta de seccions viuen a la sidebar). Al mòbil es
+          manté Cuinar + Guia i la fila secundària de sota. En gran els botons són més baixos
+          (no és un mòbil): amplada plena però menys alts. */}
+      <div className="grid grid-cols-2 gap-3 lg:gap-4">
         <button
           onClick={() => navigate('/cook')}
-          className="flex min-h-[7rem] flex-col items-center justify-center gap-1 rounded-3xl bg-boat-700 text-white shadow active:scale-95"
+          className="flex min-h-[7rem] flex-col items-center justify-center gap-1 rounded-3xl bg-boat-700 text-white shadow active:scale-95 lg:min-h-0 lg:flex-row lg:gap-3 lg:py-6"
         >
-          <ChefHat size={40} />
+          <ChefHat size={40} className="lg:h-7 lg:w-7" />
           <span className="text-lg font-bold">{t.home.cook}</span>
         </button>
+        {/* Guia: només mòbil */}
         <button
           onClick={() => navigate('/guide')}
-          className="flex min-h-[7rem] flex-col items-center justify-center gap-1 rounded-3xl bg-boat-500 text-white shadow active:scale-95"
+          className="flex min-h-[7rem] flex-col items-center justify-center gap-1 rounded-3xl bg-boat-500 text-white shadow active:scale-95 lg:hidden"
         >
           <Book size={40} />
           <span className="text-lg font-bold">{t.home.guide}</span>
         </button>
+        {/* Comprar: només pantalla gran (al mòbil viu a la fila secundària de sota) */}
+        <button
+          onClick={() => navigate('/purchase')}
+          className="hidden flex-col items-center justify-center gap-1 rounded-3xl bg-boat-500 text-white shadow active:scale-95 lg:flex lg:min-h-0 lg:flex-row lg:gap-3 lg:py-6"
+        >
+          <ShoppingCart size={40} className="lg:h-7 lg:w-7" />
+          <span className="text-lg font-bold">{t.home.buy}</span>
+        </button>
       </div>
 
       {/* Botons petits secundaris (meitat d'alçada). Columnes segons quants botons opcionals
-          (avaries, documentació) hi ha actius. */}
-      <div className={`grid gap-3 ${secondaryCols}`}>
+          (avaries, documentació) hi ha actius. Només mòbil: en pantalla gran aquests accessos
+          viuen a la sidebar. */}
+      <div className={`grid gap-3 lg:hidden ${secondaryCols}`}>
         <button
           onClick={() => navigate('/purchase')}
           className="flex min-h-touch flex-row items-center justify-center gap-2 rounded-2xl bg-boat-100 text-boat-900 shadow-sm active:scale-95"
@@ -124,6 +137,9 @@ export function Home() {
         )}
       </div>
 
+      {/* Seccions informatives del dashboard. En pantalla gran es reparteixen en dues
+          columnes per aprofitar l'amplada; al mòbil queden apilades. */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
       {/* Indicadors de durada (aigua, gas…) */}
       {prefs.showDurationSection && durations.length > 0 && (
         <section className="flex flex-col gap-2">
@@ -260,6 +276,7 @@ export function Home() {
         )}
       </section>
       )}
+      </div>
 
       {/* Llistat d'aigües per tipus (des de la fila "Aigua potable") */}
       <Sheet open={waterList} onClose={() => setWaterList(false)} title={t.home.drinkingWater}>

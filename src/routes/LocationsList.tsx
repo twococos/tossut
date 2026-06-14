@@ -83,7 +83,7 @@ export function LocationsList() {
       {locations.length === 0 ? (
         <EmptyState icon={Archive} text={t.locations.empty} />
       ) : (
-        <ul className="grid grid-cols-2 gap-2">
+        <ul className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
           {locations.map((l) => (
             <li key={l.id}>
               <button
