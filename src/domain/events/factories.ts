@@ -6,6 +6,8 @@ import type {
   ResourceConfig,
   WaterTank,
   ID,
+  DocCategory,
+  DocVersionData,
 } from '@/types/entities';
 import type {
   StockDeltaEvent,
@@ -32,11 +34,20 @@ import type {
   FaultReportEvent,
   FaultUpdateEvent,
   FaultResolveEvent,
+  FaultReopenEvent,
   FaultBarrierEvent,
   ShoppingAddEvent,
   ShoppingRemoveEvent,
   ShoppingBoughtEvent,
   ShoppingBarrierEvent,
+  DocumentCreateEvent,
+  DocumentEditEvent,
+  DocumentRenewEvent,
+  DocumentCommentEvent,
+  DocumentCommentDeleteEvent,
+  DocumentDeleteEvent,
+  DocumentRestoreEvent,
+  DocumentBarrierEvent,
 } from '@/types/events';
 import { newId } from '@/lib/id';
 import { nowISO } from '@/lib/time';
@@ -245,6 +256,13 @@ export function makeFaultResolveEvent(
   return { ...base(ctx), type: 'fault_resolve', faultId };
 }
 
+export function makeFaultReopenEvent(
+  ctx: EventContext,
+  faultId: ID,
+): FaultReopenEvent {
+  return { ...base(ctx), type: 'fault_reopen', faultId };
+}
+
 export function makeFaultBarrierEvent(
   ctx: EventContext,
   cut: OrderKey,
@@ -281,4 +299,94 @@ export function makeShoppingBarrierEvent(
   cut: OrderKey,
 ): ShoppingBarrierEvent {
   return { ...base(ctx), type: 'shopping_barrier', cut };
+}
+
+// ── documentació tècnica ───────────────────────────────────────────────────────
+export function makeDocumentCreateEvent(
+  ctx: EventContext,
+  data: {
+    title: string;
+    description: string;
+    category: DocCategory;
+    data: DocVersionData;
+  },
+): DocumentCreateEvent {
+  const b = base(ctx);
+  // Per conveni el docId és l'id del propi event de creació.
+  return {
+    ...b,
+    type: 'document_create',
+    docId: b.id,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    data: data.data,
+  };
+}
+
+export function makeDocumentEditEvent(
+  ctx: EventContext,
+  docId: ID,
+  data: {
+    title: string;
+    description: string;
+    category: DocCategory;
+    data: DocVersionData;
+  },
+): DocumentEditEvent {
+  return {
+    ...base(ctx),
+    type: 'document_edit',
+    docId,
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    data: data.data,
+  };
+}
+
+export function makeDocumentRenewEvent(
+  ctx: EventContext,
+  docId: ID,
+  data: DocVersionData,
+): DocumentRenewEvent {
+  return { ...base(ctx), type: 'document_renew', docId, data };
+}
+
+export function makeDocumentCommentEvent(
+  ctx: EventContext,
+  docId: ID,
+  versionSeq: number,
+  payload: { text?: string; photoPath?: string },
+): DocumentCommentEvent {
+  return { ...base(ctx), type: 'document_comment', docId, versionSeq, ...payload };
+}
+
+export function makeDocumentCommentDeleteEvent(
+  ctx: EventContext,
+  docId: ID,
+  commentId: ID,
+): DocumentCommentDeleteEvent {
+  return { ...base(ctx), type: 'document_comment_delete', docId, commentId };
+}
+
+export function makeDocumentDeleteEvent(
+  ctx: EventContext,
+  docId: ID,
+): DocumentDeleteEvent {
+  return { ...base(ctx), type: 'document_delete', docId };
+}
+
+export function makeDocumentRestoreEvent(
+  ctx: EventContext,
+  docId: ID,
+): DocumentRestoreEvent {
+  return { ...base(ctx), type: 'document_restore', docId };
+}
+
+export function makeDocumentBarrierEvent(
+  ctx: EventContext,
+  cut: OrderKey,
+): DocumentBarrierEvent {
+  return { ...base(ctx), type: 'document_barrier', cut };
 }

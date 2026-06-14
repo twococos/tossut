@@ -3,118 +3,168 @@ import { useAuth } from '@/auth/AuthProvider';
 import { useAllEvents } from '@/hooks/useData';
 import { EmptyState, Card } from '@/components/ui/common';
 import { ConfirmAction } from '@/components/ui/ConfirmAction';
-import { ScrollText, faultEventIcon, History as HistoryIcon, Trash2, ImagePlus } from '@/components/ui/icons';
+import {
+  ScrollText,
+  History as HistoryIcon,
+  Trash2,
+  AlertTriangle,
+  RotateCcw,
+} from '@/components/ui/icons';
 import { sortEvents, keyOf, compareKey } from '@/domain/inventory/ordering';
 import {
   deriveFaults,
   activeFaultBarrier,
   SEVERITY_BAND,
-  type DerivedFault,
 } from '@/domain/faults/deriveFaults';
+import type { FaultSeverity } from '@/types/events';
+import {
+  FaultTimelineRow,
+  type FaultTimelineEvent,
+} from '@/features/faults/FaultTimeline';
 import { stripLocalMeta } from '@/db/repositories/events.repo';
-import { commitFaultReset } from '@/db/commands';
+import { commitFaultReset, commitFaultReopen } from '@/db/commands';
 import { relativeFromNow } from '@/lib/time';
-import type {
-  AppEvent,
-  FaultReportEvent,
-  FaultUpdateEvent,
-  FaultResolveEvent,
-  FaultBarrierEvent,
-} from '@/types/events';
+import type { AppEvent } from '@/types/events';
 import { t } from '@/text';
 
-type FaultEvent =
-  | FaultReportEvent
-  | FaultUpdateEvent
-  | FaultResolveEvent
-  | FaultBarrierEvent;
+const TIMELINE_TYPES = new Set([
+  'fault_report',
+  'fault_update',
+  'fault_resolve',
+  'fault_reopen',
+]);
 
-/** Historial cronològic de tots els events d'avaria (report / update / resolve / reset). */
+interface FaultGroup {
+  faultId: string;
+  title: string;
+  severity?: FaultSeverity;
+  resolved: boolean;
+  lastAt: string;
+  events: FaultTimelineEvent[]; // cronològic invers (més recent a dalt)
+}
+
+/** Historial d'avaries AGRUPAT per avaria (cada fila desplega la seva cronologia). Mirall de DocumentsHistory. */
 export function FaultsHistory() {
   const rawEvents = useAllEvents();
   const { userName } = useAuth();
-  const [filterFaultId, setFilterFaultId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const { rows, faultsMap } = useMemo(() => {
+  const { groups, hasReset } = useMemo(() => {
     const events: AppEvent[] = (rawEvents ?? []).map((r) => stripLocalMeta(r as never));
     const sorted = sortEvents(events);
     const barrier = activeFaultBarrier(sorted);
-    // Events d'avaria no tallats per la barrera de reset, més nous a dalt.
-    const faultEvents = sorted.filter((e): e is FaultEvent => {
-      if (
-        e.type !== 'fault_report' &&
-        e.type !== 'fault_update' &&
-        e.type !== 'fault_resolve' &&
-        e.type !== 'fault_barrier'
-      ) {
-        return false;
-      }
-      // La barrera mateixa sempre es mostra; els altres, només si no estan tallats.
-      if (e.type === 'fault_barrier') return true;
-      return !(barrier && compareKey(keyOf(e), barrier.cut) < 0);
-    });
-    return {
-      rows: [...faultEvents].reverse(),
-      faultsMap: deriveFaults(events),
-    };
+    const faultsMap = deriveFaults(events);
+
+    const byFault = new Map<string, FaultTimelineEvent[]>();
+    for (const e of sorted) {
+      if (!TIMELINE_TYPES.has(e.type)) continue;
+      if (barrier && compareKey(keyOf(e), barrier.cut) < 0) continue;
+      const ev = e as FaultTimelineEvent;
+      const list = byFault.get(ev.faultId) ?? [];
+      list.push(ev);
+      byFault.set(ev.faultId, list);
+    }
+
+    const result: FaultGroup[] = [];
+    for (const [faultId, evs] of byFault) {
+      const derived = faultsMap.get(faultId);
+      const last = evs[evs.length - 1]!;
+      result.push({
+        faultId,
+        title: derived?.title ?? faultId,
+        severity: derived?.severity,
+        resolved: derived?.resolved ?? false,
+        lastAt: last.occurredAt,
+        events: [...evs].reverse(),
+      });
+    }
+    // Avaries amb activitat més recent a dalt.
+    result.sort((a, b) => (a.lastAt < b.lastAt ? 1 : a.lastAt > b.lastAt ? -1 : 0));
+    return { groups: result, hasReset: barrier !== null };
   }, [rawEvents]);
 
-  // Filtra per una avaria concreta (Extra #4); les barreres es mostren sempre.
-  const visibleRows = filterFaultId
-    ? rows.filter((e) => e.type !== 'fault_barrier' && e.faultId === filterFaultId)
-    : rows;
-
-  if (rows.length === 0) {
+  if (groups.length === 0 && !hasReset) {
     return <EmptyState icon={ScrollText} text={t.faults.historyEmpty} />;
   }
-
-  const filteredTitle = filterFaultId ? faultsMap.get(filterFaultId)?.title : undefined;
 
   return (
     <div className="flex flex-col gap-3 pt-2">
       <h1 className="text-xl font-bold">{t.faults.historyTitle}</h1>
 
-      {filterFaultId && (
-        <div className="flex items-center justify-between rounded-xl bg-boat-100 px-3 py-2 text-sm">
-          <span className="font-medium text-boat-700">
-            {t.faults.filterBy(filteredTitle ?? '')}
-          </span>
-          <button
-            type="button"
-            onClick={() => setFilterFaultId(null)}
-            className="text-boat-500 active:scale-95"
-          >
-            {t.faults.clearFilter}
-          </button>
-        </div>
+      <ul className="flex flex-col gap-2">
+        {groups.map((g) => (
+          <li key={g.faultId}>
+            <div
+              className={`flex overflow-hidden rounded-2xl bg-white shadow-sm ${
+                g.resolved ? 'opacity-60' : ''
+              }`}
+            >
+              {g.severity && <div className={`w-1.5 shrink-0 ${SEVERITY_BAND[g.severity]}`} />}
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setOpenId(openId === g.faultId ? null : g.faultId)}
+                  className="flex w-full items-center justify-between gap-2 p-3 text-left"
+                >
+                  <span className="min-w-0">
+                    <span
+                      className={`block truncate font-semibold ${
+                        g.resolved ? 'text-boat-500 line-through' : ''
+                      }`}
+                    >
+                      {g.title}
+                    </span>
+                    <span className="block text-xs text-boat-400">
+                      {t.faults.eventCount(g.events.length)}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {g.resolved && (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                        {t.faults.resolvedBadge}
+                      </span>
+                    )}
+                    <span className="text-xs text-boat-400">{relativeFromNow(g.lastAt)}</span>
+                  </span>
+                </button>
+
+                {openId === g.faultId && (
+                  <div className="flex flex-col gap-2 border-t border-amber-100 bg-amber-50 p-3">
+                    {g.resolved && (
+                      <ConfirmAction
+                        label={t.faults.reopen}
+                        message={t.faults.reopenConfirm}
+                        confirmLabel={t.faults.reopen}
+                        icon={RotateCcw}
+                        variant="secondary"
+                        onConfirm={() =>
+                          userName ? commitFaultReopen(userName, g.faultId) : undefined
+                        }
+                      />
+                    )}
+                    {g.events.map((e) => (
+                      <FaultTimelineRow key={e.id} event={e} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {hasReset && (
+        <Card className="border-l-4 border-boat-300 bg-boat-50">
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-boat-700">
+            <HistoryIcon size={16} />
+            {t.faults.resetEntryTitle}
+          </div>
+        </Card>
       )}
 
-      <ul className="flex flex-col gap-2">
-        {visibleRows.map((e) =>
-          e.type === 'fault_barrier' ? (
-            <li key={e.id}>
-              <Card className="border-l-4 border-boat-300 bg-boat-50">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-1.5 font-semibold text-boat-700">
-                    <HistoryIcon size={16} />
-                    {t.faults.resetEntryTitle}
-                  </span>
-                  <span className="text-boat-400">{relativeFromNow(e.occurredAt)}</span>
-                </div>
-                <div className="mt-1 text-xs text-boat-500">{e.userName}</div>
-              </Card>
-            </li>
-          ) : (
-            <li key={e.id}>
-              <FaultEventCard
-                event={e}
-                fault={faultsMap.get(e.faultId)}
-                onFilter={() => setFilterFaultId(e.faultId)}
-              />
-            </li>
-          ),
-        )}
-      </ul>
+      {groups.length === 0 && (
+        <EmptyState icon={AlertTriangle} text={t.faults.historyEmpty} />
+      )}
 
       <ConfirmAction
         label={t.faults.resetAll}
@@ -125,54 +175,5 @@ export function FaultsHistory() {
         onConfirm={() => (userName ? commitFaultReset(userName) : undefined)}
       />
     </div>
-  );
-}
-
-/** Una fila de l'historial: tipus d'event + avaria + autor + data. Tocar-la filtra per l'avaria. */
-function FaultEventCard({
-  event,
-  fault,
-  onFilter,
-}: {
-  event: FaultReportEvent | FaultUpdateEvent | FaultResolveEvent;
-  fault: DerivedFault | undefined;
-  onFilter: () => void;
-}) {
-  const kind =
-    event.type === 'fault_report'
-      ? 'report'
-      : event.type === 'fault_update'
-        ? 'update'
-        : 'resolve';
-  const Icon = faultEventIcon(kind);
-  const severity = fault?.severity;
-  const title = fault?.title ?? '';
-
-  return (
-    <button type="button" onClick={onFilter} className="w-full text-left active:scale-[0.99]">
-      <div className="flex overflow-hidden rounded-2xl bg-white shadow-sm">
-        {severity && <div className={`w-1.5 shrink-0 ${SEVERITY_BAND[severity]}`} />}
-        <div className="min-w-0 flex-1 p-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1.5 font-semibold text-boat-700">
-              <Icon size={16} />
-              {t.faults.eventKind[kind]}
-            </span>
-            <span className="text-boat-400">{relativeFromNow(event.occurredAt)}</span>
-          </div>
-          <div className="mt-0.5 truncate text-sm">{title}</div>
-          {event.type === 'fault_update' &&
-            (event.photoPath ? (
-              <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-boat-500">
-                <ImagePlus size={15} />
-                {t.faults.photoUpdate}
-              </p>
-            ) : (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-boat-600">{event.text}</p>
-            ))}
-          <div className="mt-1 text-xs text-boat-400">{event.userName}</div>
-        </div>
-      </div>
-    </button>
   );
 }

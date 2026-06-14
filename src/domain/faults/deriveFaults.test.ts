@@ -33,6 +33,9 @@ function update(occurredAt: string, faultId: string, text: string, userName = 't
 function resolve(occurredAt: string, faultId: string, userName = 't'): AppEvent {
   return { ...base(occurredAt, 'd', userName), type: 'fault_resolve', faultId };
 }
+function reopen(occurredAt: string, faultId: string, userName = 't'): AppEvent {
+  return { ...base(occurredAt, 'd', userName), type: 'fault_reopen', faultId };
+}
 function barrier(occurredAt: string, cut: OrderKey): AppEvent {
   return { ...base(occurredAt), type: 'fault_barrier', cut };
 }
@@ -75,6 +78,19 @@ describe('deriveFaults', () => {
     expect(f.resolved).toBe(true);
     expect(f.resolvedBy).toBe('Marc');
     expect(activeFaults(map)).toHaveLength(0);
+  });
+
+  it('reobrir torna una avaria resolta a les actives', () => {
+    const events = [
+      report('2026-01-02T00:00:00Z', 'f1', 'red'),
+      resolve('2026-01-05T00:00:00Z', 'f1'),
+      reopen('2026-01-06T00:00:00Z', 'f1', 'Aimar'),
+    ];
+    const map = deriveFaults(events);
+    const f = map.get('f1')!;
+    expect(f.resolved).toBe(false);
+    expect(f.resolvedAt).toBeUndefined();
+    expect(activeFaults(map)).toHaveLength(1);
   });
 
   it('un update d\'una avaria resolta s\'admet i no la reviu', () => {

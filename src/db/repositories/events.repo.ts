@@ -95,7 +95,8 @@ export async function purgeFaultsBeforeBarrier(
     if (
       r.type === 'fault_report' ||
       r.type === 'fault_update' ||
-      r.type === 'fault_resolve'
+      r.type === 'fault_resolve' ||
+      r.type === 'fault_reopen'
     ) {
       return compareKey(keyOf(r), cut) < 0;
     }
@@ -125,6 +126,39 @@ export async function purgeShoppingBeforeBarrier(
       r.type === 'shopping_add' ||
       r.type === 'shopping_remove' ||
       r.type === 'shopping_bought'
+    ) {
+      return compareKey(keyOf(r), cut) < 0;
+    }
+    return false;
+  });
+  if (toDelete.length > 0) {
+    await db.events.bulkDelete(toDelete.map((r) => r.id));
+  }
+  return toDelete.length;
+}
+
+/**
+ * Neteja física després d'un reset de documents: esborra localment els events document_*
+ * (`document_create`/`document_edit`/`document_renew`/`document_comment`/
+ * `document_comment_delete`/`document_delete`) anteriors al tall (clau < cut) i totes les
+ * `document_barrier` EXCEPTE la d'id `keepBarrierId`. Mirall de `purgeFaultsBeforeBarrier`.
+ * Retorna quants n'ha tret.
+ */
+export async function purgeDocumentsBeforeBarrier(
+  cut: OrderKey,
+  keepBarrierId: string,
+): Promise<number> {
+  const rows = await db.events.toArray();
+  const toDelete = rows.filter((r) => {
+    if (r.type === 'document_barrier') return r.id !== keepBarrierId;
+    if (
+      r.type === 'document_create' ||
+      r.type === 'document_edit' ||
+      r.type === 'document_renew' ||
+      r.type === 'document_comment' ||
+      r.type === 'document_comment_delete' ||
+      r.type === 'document_delete' ||
+      r.type === 'document_restore'
     ) {
       return compareKey(keyOf(r), cut) < 0;
     }

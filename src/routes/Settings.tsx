@@ -10,7 +10,10 @@ import {
   setEditLocked,
   getDurationWindowDays,
   setDurationWindowDays,
+  getDocExpiryWarningDays,
+  setDocExpiryWarningDays,
   setShowFaultsButton,
+  setShowDocumentsButton,
   setShowDurationSection,
   setShowResourcesSection,
   setShowExpiringSection,
@@ -30,6 +33,7 @@ export function Settings() {
   const [name, setNameField] = useState(userName ?? '');
   const [diners, setDiners] = useState(getDefaultDiners());
   const [durationWindow, setDurationWindow] = useState(getDurationWindowDays());
+  const [docExpiryWarning, setDocExpiryWarning] = useState(getDocExpiryWarningDays());
   const editLocked = useEditLocked();
   const dashboardPrefs = useDashboardPrefs();
   const { canInstall, promptInstall, isIOS } = useInstallPrompt();
@@ -135,6 +139,12 @@ export function Settings() {
           onChange={setShowFaultsButton}
         />
         <Toggle
+          label={t.settings.showDocumentsButton}
+          hint={t.settings.showDocumentsButtonHint}
+          checked={dashboardPrefs.showDocumentsButton}
+          onChange={setShowDocumentsButton}
+        />
+        <Toggle
           label={t.settings.showDurationSection}
           hint={t.settings.showDurationSectionHint}
           checked={dashboardPrefs.showDurationSection}
@@ -151,6 +161,26 @@ export function Settings() {
           hint={t.settings.showExpiringSectionHint}
           checked={dashboardPrefs.showExpiringSection}
           onChange={setShowExpiringSection}
+        />
+      </Card>
+
+      <Card className="flex items-center justify-between gap-3">
+        <label className="text-sm font-medium text-boat-700">
+          {t.settings.docExpiryWarningLabel}
+          <span className="block text-xs font-normal text-boat-500">
+            {t.settings.docExpiryWarningHint}
+          </span>
+        </label>
+        <input
+          type="number"
+          min={1}
+          className="w-20 flex-shrink-0 rounded-xl border border-boat-100 px-3 py-2"
+          value={docExpiryWarning}
+          onChange={(e) => {
+            const n = parseInt(e.target.value, 10) || 1;
+            setDocExpiryWarning(n);
+            setDocExpiryWarningDays(n);
+          }}
         />
       </Card>
 

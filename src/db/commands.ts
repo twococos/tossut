@@ -6,6 +6,8 @@ import type {
   ResourceConfig,
   WaterTank,
   ID,
+  DocCategory,
+  DocVersionData,
 } from '@/types/entities';
 import type {
   AppEvent,
@@ -34,11 +36,20 @@ import {
   makeFaultReportEvent,
   makeFaultUpdateEvent,
   makeFaultResolveEvent,
+  makeFaultReopenEvent,
   makeFaultBarrierEvent,
   makeShoppingAddEvent,
   makeShoppingRemoveEvent,
   makeShoppingBoughtEvent,
   makeShoppingBarrierEvent,
+  makeDocumentCreateEvent,
+  makeDocumentEditEvent,
+  makeDocumentRenewEvent,
+  makeDocumentCommentEvent,
+  makeDocumentCommentDeleteEvent,
+  makeDocumentDeleteEvent,
+  makeDocumentRestoreEvent,
+  makeDocumentBarrierEvent,
   type EventContext,
 } from '@/domain/events/factories';
 import {
@@ -46,10 +57,15 @@ import {
   purgeBeforeBarrier,
   purgeFaultsBeforeBarrier,
   purgeShoppingBeforeBarrier,
+  purgeDocumentsBeforeBarrier,
 } from './repositories/events.repo';
 import { getMeta, nextLocalSeq } from './repositories/meta.repo';
 import { recomputeAll } from './recompute';
-import { requestServerReset, requestServerFaultReset } from '@/sync/syncEngine';
+import {
+  requestServerReset,
+  requestServerFaultReset,
+  requestServerDocumentReset,
+} from '@/sync/syncEngine';
 import { nowISO } from '@/lib/time';
 
 /**
@@ -263,13 +279,22 @@ export async function commitFaultUpdate(
   await commit(makeFaultUpdateEvent(ctx, faultId, { text, photoPath }));
 }
 
-/** Soluciona una avaria (definitiu: surt de la llista d'actives). */
+/** Soluciona una avaria (surt de la llista d'actives). */
 export async function commitFaultResolve(
   userName: string,
   faultId: ID,
 ): Promise<void> {
   const ctx = await buildContext(userName);
   await commit(makeFaultResolveEvent(ctx, faultId));
+}
+
+/** Reobre una avaria solucionada (torna a la llista d'actives). */
+export async function commitFaultReopen(
+  userName: string,
+  faultId: ID,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeFaultReopenEvent(ctx, faultId));
 }
 
 /**
@@ -350,5 +375,109 @@ export async function commitShoppingClear(userName: string): Promise<void> {
   const event = makeShoppingBarrierEvent(ctx, cut);
   await commit(event);
   await purgeShoppingBeforeBarrier(cut, event.id);
+  await recomputeAll();
+}
+
+// ── documentació tècnica ───────────────────────────────────────────────────────
+/** Crea un document (1a versió). Retorna el docId creat. */
+export async function commitDocumentCreate(
+  userName: string,
+  data: {
+    title: string;
+    description: string;
+    category: DocCategory;
+    data: DocVersionData;
+  },
+): Promise<ID> {
+  const ctx = await buildContext(userName);
+  const event = makeDocumentCreateEvent(ctx, data);
+  await commit(event);
+  return event.docId;
+}
+
+/** Edita les metadades de la versió vigent (no crea una versió nova). */
+export async function commitDocumentEdit(
+  userName: string,
+  docId: ID,
+  data: {
+    title: string;
+    description: string;
+    category: DocCategory;
+    data: DocVersionData;
+  },
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentEditEvent(ctx, docId, data));
+}
+
+/** Renova un document: nova versió vigent (la prèvia queda a l'historial). */
+export async function commitDocumentRenew(
+  userName: string,
+  docId: ID,
+  data: DocVersionData,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentRenewEvent(ctx, docId, data));
+}
+
+/**
+ * Afegeix un comentari a un document, lligat a la versió vigent (`versionSeq`). És O de text
+ * O de foto (mai les dues); si no en porta exactament un, no fa res.
+ */
+export async function commitDocumentComment(
+  userName: string,
+  docId: ID,
+  versionSeq: number,
+  payload: { text?: string; photoPath?: string },
+): Promise<void> {
+  const text = payload.text?.trim() || undefined;
+  const photoPath = payload.photoPath || undefined;
+  // Exactament un dels dos.
+  if (!text === !photoPath) return;
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentCommentEvent(ctx, docId, versionSeq, { text, photoPath }));
+}
+
+/** Oculta un comentari (deixa de mostrar-se a la targeta; queda a l'historial). */
+export async function commitDocumentCommentDelete(
+  userName: string,
+  docId: ID,
+  commentId: ID,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentCommentDeleteEvent(ctx, docId, commentId));
+}
+
+/** Elimina un document (surt de la llista; tot queda a l'historial). */
+export async function commitDocumentDelete(
+  userName: string,
+  docId: ID,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentDeleteEvent(ctx, docId));
+}
+
+/** Reinstaura un document eliminat (torna a la llista d'actius). */
+export async function commitDocumentRestore(
+  userName: string,
+  docId: ID,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeDocumentRestoreEvent(ctx, docId));
+}
+
+/**
+ * Esborra l'historial de documents: emet una barrera (ignora tot el passat) i fa neteja física
+ * best-effort (local + servidor), conservant la barrera nova com a salvaguarda. Mirall de
+ * `commitFaultReset`.
+ */
+export async function commitDocumentReset(userName: string): Promise<void> {
+  const base = await buildContext(userName);
+  const ctx = { ...base, occurredAt: nowISO() };
+  const cut: OrderKey = { occurredAt: ctx.occurredAt, deviceId: ctx.deviceId, seq: ctx.seq };
+  const event = makeDocumentBarrierEvent(ctx, cut);
+  await commit(event);
+  await purgeDocumentsBeforeBarrier(cut, event.id);
+  await requestServerDocumentReset(cut, event.id);
   await recomputeAll();
 }

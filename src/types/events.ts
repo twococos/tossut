@@ -16,6 +16,8 @@ import type {
   ChecklistTemplate,
   ResourceConfig,
   WaterTank,
+  DocCategory,
+  DocVersionData,
 } from './entities';
 
 export type EventType =
@@ -40,12 +42,22 @@ export type EventType =
   | 'fault_report' // reportar (crear) una avaria
   | 'fault_update' // actualització follow-up lligada a una avaria
   | 'fault_resolve' // solucionar una avaria
+  | 'fault_reopen' // reobrir una avaria solucionada (torna a actives)
   | 'fault_barrier' // reset de l'historial d'avaries (anàleg a stock_barrier 'reset')
   // ── llista de la compra ──
   | 'shopping_add' // afegeix/edita la quantitat d'un objecte a la llista (delta amb signe)
   | 'shopping_remove' // treu del tot un objecte de la llista
   | 'shopping_bought' // marca comprat → treu de la llista (l'stock_delta de compra va a part)
-  | 'shopping_barrier'; // buidar tota la llista (anàleg a fault_barrier)
+  | 'shopping_barrier' // buidar tota la llista (anàleg a fault_barrier)
+  // ── documentació tècnica ──
+  | 'document_create' // crear un document (1a versió)
+  | 'document_edit' // editar metadades de la versió vigent (sense crear versió nova)
+  | 'document_renew' // renovar: nova versió; l'antiga passa a l'historial
+  | 'document_comment' // comentari sobre la versió vigent (text XOR foto)
+  | 'document_comment_delete' // ocultar un comentari (queda a l'historial)
+  | 'document_delete' // eliminar el document (surt de la llista; queda a l'historial)
+  | 'document_restore' // reinstaurar un document eliminat (torna a la llista)
+  | 'document_barrier'; // reset de l'historial de documents (anàleg a fault_barrier)
 
 /** Sobre comú a TOTS els esdeveniments (fila append-only del log). */
 export interface EventBase {
@@ -224,9 +236,15 @@ export interface FaultUpdateEvent extends EventBase {
   photoPath?: string; // ruta a Storage (vegeu photoQueue); exclusiu amb `text`
 }
 
-/** Solucionar una avaria (definitiu: surt de la llista d'actives). */
+/** Solucionar una avaria (surt de la llista d'actives). */
 export interface FaultResolveEvent extends EventBase {
   type: 'fault_resolve';
+  faultId: ID;
+}
+
+/** Reobrir una avaria solucionada (torna a la llista d'actives; reversible). */
+export interface FaultReopenEvent extends EventBase {
+  type: 'fault_reopen';
   faultId: ID;
 }
 
@@ -278,6 +296,80 @@ export interface ShoppingBarrierEvent extends EventBase {
   cut: OrderKey; // s'ignoren els shopping_* amb clau < cut (tot el passat)
 }
 
+// ── documentació tècnica del veler ────────────────────────────────────────────
+// Un document es DERIVA del log com les avaries. El `docId` és l'id del propi
+// `document_create`; la resta d'events hi referencien. Un document té VERSIONS (la
+// renovació en crea una de nova mantenint l'antiga a l'historial) i COMENTARIS lligats
+// a la versió vigent en el moment de crear-los. Veure src/domain/documents/.
+
+/** Crear un document (1a versió). La data/hora és `occurredAt`; l'autor, `userName`. */
+export interface DocumentCreateEvent extends EventBase {
+  type: 'document_create';
+  docId: ID; // = id lògic del document (per conveni, igual a l'id de l'event)
+  title: string;
+  description: string;
+  category: DocCategory;
+  data: DocVersionData; // 1a versió
+}
+
+/** Editar metadades de la versió vigent (NO crea una versió nova). */
+export interface DocumentEditEvent extends EventBase {
+  type: 'document_edit';
+  docId: ID;
+  title: string;
+  description: string;
+  category: DocCategory;
+  data: DocVersionData; // substitueix les dades de la versió vigent
+}
+
+/** Renovar: nova versió vigent (nou fitxer/validesa). La versió prèvia va a l'historial. */
+export interface DocumentRenewEvent extends EventBase {
+  type: 'document_renew';
+  docId: ID;
+  data: DocVersionData; // dades de la nova versió
+}
+
+/**
+ * Comentari sobre un document, lligat a la versió vigent en el moment (`versionSeq`).
+ * És O de text O de foto, mai les dues (invariant garantit pel command, no el tipus).
+ */
+export interface DocumentCommentEvent extends EventBase {
+  type: 'document_comment';
+  docId: ID;
+  versionSeq: number; // índex de la versió vigent quan es va crear (0 = original)
+  text?: string;
+  photoPath?: string; // ruta a Storage (vegeu photoQueue); exclusiu amb `text`
+}
+
+/** Ocultar un comentari (deixa de mostrar-se a la targeta, però queda a l'historial). */
+export interface DocumentCommentDeleteEvent extends EventBase {
+  type: 'document_comment_delete';
+  docId: ID;
+  commentId: ID; // id de l'event document_comment a ocultar
+}
+
+/** Eliminar el document (surt de la llista; tot queda a l'historial). */
+export interface DocumentDeleteEvent extends EventBase {
+  type: 'document_delete';
+  docId: ID;
+}
+
+/** Reinstaurar un document eliminat (torna a la llista d'actius; reversible). */
+export interface DocumentRestoreEvent extends EventBase {
+  type: 'document_restore';
+  docId: ID;
+}
+
+/**
+ * Reset de l'historial de documents. Anàleg a FaultBarrierEvent: la derivació IGNORA tots
+ * els events document_* amb clau d'ordre < cut. Es conserva com a salvaguarda determinista
+ * (multi-dispositiu offline); a més es fa neteja física (local + RPC).
+ */
+export interface DocumentBarrierEvent extends EventBase {
+  type: 'document_barrier';
+  cut: OrderKey; // s'ignoren els document_* amb clau < cut (tot el passat)
+}
+
 // ── unió discriminada ────────────────────────────────────────────────────────
 export type AppEvent =
   | StockDeltaEvent
@@ -299,8 +391,17 @@ export type AppEvent =
   | FaultReportEvent
   | FaultUpdateEvent
   | FaultResolveEvent
+  | FaultReopenEvent
   | FaultBarrierEvent
   | ShoppingAddEvent
   | ShoppingRemoveEvent
   | ShoppingBoughtEvent
-  | ShoppingBarrierEvent;
+  | ShoppingBarrierEvent
+  | DocumentCreateEvent
+  | DocumentEditEvent
+  | DocumentRenewEvent
+  | DocumentCommentEvent
+  | DocumentCommentDeleteEvent
+  | DocumentDeleteEvent
+  | DocumentRestoreEvent
+  | DocumentBarrierEvent;

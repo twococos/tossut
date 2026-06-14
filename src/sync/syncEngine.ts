@@ -15,9 +15,11 @@ import { recomputeAll } from '@/db/recompute';
 import { activeResetBarrier } from '@/domain/inventory/barrier';
 import { activeFaultBarrier } from '@/domain/faults/deriveFaults';
 import { activeShoppingBarrier } from '@/domain/shopping/deriveShoppingList';
+import { activeDocumentBarrier } from '@/domain/documents/deriveDocuments';
 import {
   purgeFaultsBeforeBarrier,
   purgeShoppingBeforeBarrier,
+  purgeDocumentsBeforeBarrier,
 } from '@/db/repositories/events.repo';
 import { nowISO } from '@/lib/time';
 import type { AppEvent, OrderKey } from '@/types/events';
@@ -62,6 +64,28 @@ export async function requestServerFaultReset(
     });
   } catch (error) {
     console.error('[sync] reset_fault_events error:', error);
+  }
+}
+
+/**
+ * Mirall de `requestServerFaultReset` per a l'historial de documents: esborra al servidor els
+ * events document_* anteriors al tall i les document_barrier velles, conservant la barrera nova.
+ * Best-effort.
+ */
+export async function requestServerDocumentReset(
+  cut: OrderKey,
+  keepBarrierId: string,
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.rpc('reset_document_events', {
+      cut_occurred_at: cut.occurredAt,
+      cut_device_id: cut.deviceId,
+      cut_seq: cut.seq,
+      keep_barrier_id: keepBarrierId,
+    });
+  } catch (error) {
+    console.error('[sync] reset_document_events error:', error);
   }
 }
 
@@ -147,6 +171,15 @@ async function runSync(): Promise<SyncResult> {
         );
         if (removed > 0) purgedByReset = true;
       }
+      // Mateixa lògica per a l'historial de documents.
+      const documentBarrier = activeDocumentBarrier(allLocal);
+      if (documentBarrier) {
+        const removed = await purgeDocumentsBeforeBarrier(
+          documentBarrier.cut,
+          documentBarrier.id,
+        );
+        if (removed > 0) purgedByReset = true;
+      }
     }
 
     // ── 1. PUSH ──────────────────────────────────────────────────────────────
@@ -194,6 +227,14 @@ async function runSync(): Promise<SyncResult> {
         const removed = await purgeShoppingBeforeBarrier(
           shoppingBarrier.cut,
           shoppingBarrier.id,
+        );
+        if (removed > 0) purgedByPulledReset = true;
+      }
+      const documentBarrier = activeDocumentBarrier(pulledEvents);
+      if (documentBarrier) {
+        const removed = await purgeDocumentsBeforeBarrier(
+          documentBarrier.cut,
+          documentBarrier.id,
         );
         if (removed > 0) purgedByPulledReset = true;
       }

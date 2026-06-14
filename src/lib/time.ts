@@ -18,6 +18,30 @@ export function diffDays(from: ISOTimestamp, to: ISOTimestamp): number {
   return ms / (1000 * 60 * 60 * 24);
 }
 
+/** Converteix una marca ISO al valor d'un `<input type="date">` (YYYY-MM-DD), o ''. */
+export function isoToDateInput(iso?: ISOTimestamp): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+/** Converteix el valor d'un `<input type="date">` (YYYY-MM-DD) a marca ISO, o undefined. */
+export function dateInputToISO(value: string): ISOTimestamp | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
+/** Format de data curt en català (dd/mm/aaaa) a partir d'una marca ISO. */
+export function formatDate(iso?: ISOTimestamp): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 /** Format relatiu curt en català: "fa 3 min", "fa 2 h", "ara mateix". */
 export function relativeFromNow(iso: ISOTimestamp): string {
   const secs = Math.round((Date.now() - new Date(iso).getTime()) / 1000);

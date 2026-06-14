@@ -85,3 +85,7 @@ export const useFaults = () => useLiveQuery(() => db.faults.toArray(), [], []);
 /** Tots els ítems de la llista de la compra (agregats per objecte), reactiu. */
 export const useShoppingItems = () =>
   useLiveQuery(() => db.shoppingItems.toArray(), [], []);
+
+// ── documentació tècnica ───────────────────────────────────────────────────────
+/** Tots els documents derivats (actius i eliminats), reactiu. */
+export const useDocuments = () => useLiveQuery(() => db.documents.toArray(), [], []);

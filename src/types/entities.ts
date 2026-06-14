@@ -157,3 +157,44 @@ export interface ResourceState {
   // comú
   lastMeasuredAt?: ISOTimestamp;
 }
+
+// ── documentació tècnica del veler ────────────────────────────────────────────
+// Un document (inspecció tècnica, homologació, títol, abanderament, duanes…) NO es
+// guarda com a entitat amb estat: es DERIVA del log com tota la resta. El `docId` és
+// l'id del propi `document_create`. Veure src/domain/documents/.
+
+/** Categoria d'un document (llista fixa al codi). */
+export type DocCategory =
+  | 'inspection' // inspecció tècnica
+  | 'homologation' // certificats d'homologació
+  | 'safety' // revisió del material de seguretat
+  | 'license' // títols dels patrons
+  | 'registration' // certificat d'abanderament
+  | 'customs' // duanes
+  | 'insurance' // assegurança
+  | 'other'; // altres
+
+/** Les categories en ordre de presentació. */
+export const DOC_CATEGORIES: DocCategory[] = [
+  'inspection',
+  'homologation',
+  'safety',
+  'license',
+  'registration',
+  'customs',
+  'insurance',
+  'other',
+];
+
+/**
+ * Dades d'una versió d'un document (snapshot que viatja als events de creació/renovació).
+ * Tots els camps són opcionals: alguns documents no caduquen, no tenen referència, etc.
+ */
+export interface DocVersionData {
+  validUntil?: ISOTimestamp; // data de validesa (si aplica) — clau per a l'avís de caducitat
+  issuedAt?: ISOTimestamp; // data d'emissió
+  reference?: string; // número / referència
+  issuer?: string; // entitat emissora
+  physicalLocation?: string; // on és l'original físic
+  filePath?: string; // ruta a Storage del fitxer digital (opcional)
+}

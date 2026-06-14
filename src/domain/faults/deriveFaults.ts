@@ -94,7 +94,8 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
       barrier &&
       (ev.type === 'fault_report' ||
         ev.type === 'fault_update' ||
-        ev.type === 'fault_resolve') &&
+        ev.type === 'fault_resolve' ||
+        ev.type === 'fault_reopen') &&
       compareKey(keyOf(ev), barrier.cut) < 0
     ) {
       continue;
@@ -128,6 +129,13 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
         f.resolved = true;
         f.resolvedAt = ev.occurredAt;
         f.resolvedBy = ev.userName;
+      }
+    } else if (ev.type === 'fault_reopen') {
+      const f = faults.get(ev.faultId);
+      if (f) {
+        f.resolved = false;
+        f.resolvedAt = undefined;
+        f.resolvedBy = undefined;
       }
     }
   }

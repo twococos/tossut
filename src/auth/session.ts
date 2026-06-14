@@ -12,9 +12,11 @@ const DINERS_KEY = 'boat-stock-manager.defaultDiners';
 const EDIT_LOCKED_KEY = 'boat-stock-manager.editLocked';
 const DURATION_WINDOW_KEY = 'boat-stock-manager.durationWindowDays';
 const SHOW_FAULTS_BUTTON_KEY = 'boat-stock-manager.showFaultsButton';
+const SHOW_DOCUMENTS_BUTTON_KEY = 'boat-stock-manager.showDocumentsButton';
 const SHOW_DURATION_KEY = 'boat-stock-manager.showDurationSection';
 const SHOW_RESOURCES_KEY = 'boat-stock-manager.showResourcesSection';
 const SHOW_EXPIRING_KEY = 'boat-stock-manager.showExpiringSection';
+const DOC_EXPIRY_WARNING_KEY = 'boat-stock-manager.docExpiryWarningDays';
 
 export function getUserName(): string | null {
   return localStorage.getItem(NAME_KEY);
@@ -90,6 +92,12 @@ function setFlag(key: string, value: boolean): void {
 export const getShowFaultsButton = (): boolean => getFlag(SHOW_FAULTS_BUTTON_KEY, false);
 export const setShowFaultsButton = (v: boolean): void => setFlag(SHOW_FAULTS_BUTTON_KEY, v);
 
+/** Mostrar el botó de documentació al dashboard. Per defecte NO. */
+export const getShowDocumentsButton = (): boolean =>
+  getFlag(SHOW_DOCUMENTS_BUTTON_KEY, false);
+export const setShowDocumentsButton = (v: boolean): void =>
+  setFlag(SHOW_DOCUMENTS_BUTTON_KEY, v);
+
 /** Mostrar la secció de durada estimada. Per defecte SÍ. */
 export const getShowDurationSection = (): boolean => getFlag(SHOW_DURATION_KEY, true);
 export const setShowDurationSection = (v: boolean): void => setFlag(SHOW_DURATION_KEY, v);
@@ -101,3 +109,19 @@ export const setShowResourcesSection = (v: boolean): void => setFlag(SHOW_RESOUR
 /** Mostrar la secció de productes que caduquen aviat. Per defecte SÍ. */
 export const getShowExpiringSection = (): boolean => getFlag(SHOW_EXPIRING_KEY, true);
 export const setShowExpiringSection = (v: boolean): void => setFlag(SHOW_EXPIRING_KEY, v);
+
+/**
+ * Llindar (en dies) per avisar que un document tècnic caduca aviat. Per dispositiu (NO se
+ * sincronitza): cada tripulant tria el seu. Per defecte 30 dies. En canviar-lo es dispara
+ * `doc-expiry-warning-change` perquè la portada i la pàgina de documents hi reaccionin.
+ */
+export function getDocExpiryWarningDays(): number {
+  const v = localStorage.getItem(DOC_EXPIRY_WARNING_KEY);
+  const n = v ? parseInt(v, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : 30;
+}
+
+export function setDocExpiryWarningDays(days: number): void {
+  localStorage.setItem(DOC_EXPIRY_WARNING_KEY, String(Math.max(1, Math.round(days))));
+  window.dispatchEvent(new CustomEvent('doc-expiry-warning-change'));
+}

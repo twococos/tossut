@@ -12,20 +12,29 @@ const BUCKET = 'boat-photos';
  * soles quan torna la connexió. Veure PLA.md (secció 7, punt fotos i secció 14.8).
  */
 
-/** Encua una foto per pujar més tard. Retorna la ruta destí prevista a Storage. */
+/**
+ * Encua un fitxer (foto o document) per pujar més tard. Retorna la ruta destí prevista a
+ * Storage. Per defecte tracta el blob com una foto JPEG (compatibilitat amb les crides
+ * existents). Per a documents (PDF o imatge) cal passar `mime`/`ext` perquè el fitxer es
+ * pugi amb el contentType correcte i la ruta tingui l'extensió adequada.
+ */
 export async function enqueuePhoto(
   blob: Blob,
-  targetType: 'object' | 'location' | 'app' | 'fault',
+  targetType: 'object' | 'location' | 'app' | 'fault' | 'document',
   targetId: string,
+  opts?: { mime?: string; ext?: string },
 ): Promise<string> {
   const id = newId();
-  const path = `${targetType}s/${targetId}/${id}.jpg`;
+  const ext = opts?.ext ?? 'jpg';
+  const path = `${targetType}s/${targetId}/${id}.${ext}`;
   const photo: PendingPhoto = {
     id: path, // la clau és la ruta destí (estable, dedup)
     blob,
     targetType,
     targetId,
     createdAt: nowISO(),
+    mime: opts?.mime ?? 'image/jpeg',
+    ext,
   };
   await db.pendingPhotos.put(photo);
   return path;
@@ -45,7 +54,10 @@ export async function flushPendingPhotos(): Promise<number> {
   for (const photo of pending) {
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(photo.id, photo.blob, { upsert: true, contentType: 'image/jpeg' });
+      .upload(photo.id, photo.blob, {
+        upsert: true,
+        contentType: photo.mime ?? 'image/jpeg',
+      });
     if (!error) {
       await db.pendingPhotos.delete(photo.id);
       uploaded++;

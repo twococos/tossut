@@ -210,23 +210,54 @@ fins aquí"; botó "Esborrar tot l'historial" al final. Confirmació en dos pass
 **Avaries (gestió d'avaries del vaixell)** — event sourcing pur, com tota la resta.
 Events a [src/types/events.ts](src/types/events.ts): `fault_report` (títol, descripció,
 `severity` groc/taronja/vermell; el `faultId` és l'id del propi report), `fault_update`
-(follow-up lligat a `faultId`), `fault_resolve` (solucionar = definitiu, surt de la llista)
-i `fault_barrier` (reset de l'historial, anàleg a `stock_barrier` mode 'reset' — només
-barrera, sense rewind). L'estat es deriva a [src/domain/faults/deriveFaults.ts](src/domain/faults/deriveFaults.ts)
-(pur, amb tests) → cau Dexie `faults` (regenerada a cada `recomputeAll`). Commands a
-[src/db/commands.ts](src/db/commands.ts) (`commitFaultReport/Update/Resolve/Reset`); el reset
-fa barrera + neteja física (local `purgeFaultsBeforeBarrier` + RPC `reset_fault_events`,
-migració [0008](supabase/migrations/0008_fault_reset.sql)), igual que el reset d'estoc, amb
-neteja en cascada al `syncEngine`. UI: [src/routes/Faults.tsx](src/routes/Faults.tsx) (llista
-d'actives ordenada per gravetat + reportar) i [src/routes/FaultsHistory.tsx](src/routes/FaultsHistory.tsx)
-(cronologia + filtre per avaria + esborrar historial); components a `src/features/faults/`.
+(follow-up lligat a `faultId`), `fault_resolve` (solucionar, surt de la llista), `fault_reopen`
+(reobrir una avaria solucionada — torna a actives; reversible) i `fault_barrier` (reset de
+l'historial, anàleg a `stock_barrier` mode 'reset' — només barrera, sense rewind). L'estat es
+deriva a [src/domain/faults/deriveFaults.ts](src/domain/faults/deriveFaults.ts) (pur, amb tests)
+→ cau Dexie `faults` (regenerada a cada `recomputeAll`). Commands a
+[src/db/commands.ts](src/db/commands.ts) (`commitFaultReport/Update/Resolve/Reopen/Reset`); el
+reset fa barrera + neteja física (local `purgeFaultsBeforeBarrier` + RPC `reset_fault_events`,
+migracions [0008](supabase/migrations/0008_fault_reset.sql) i
+[0010](supabase/migrations/0010_fault_reopen.sql) que hi afegeix `fault_reopen`), igual que el
+reset d'estoc, amb neteja en cascada al `syncEngine`. UI: [src/routes/Faults.tsx](src/routes/Faults.tsx)
+(llista d'actives ordenada per gravetat + reportar) i
+[src/routes/FaultsHistory.tsx](src/routes/FaultsHistory.tsx) (**agrupat per avaria**: cada targeta
+desplega la seva cronologia; les resoltes surten apagades amb badge i botó "Reobrir"; esborrar
+historial); components a `src/features/faults/` (inclòs `FaultTimeline`). Mateix patró que
+l'historial de documents (documents eliminats apagats + botó "Reinstaurar", event
+`document_restore`).
 
 **Dashboard configurable** — la portada ([src/routes/Home.tsx](src/routes/Home.tsx)) té cada
-secció commutable des d'Ajustos: botó d'avaries (3a columna; OFF per defecte), durada
-estimada (ON), recursos (OFF), caduca aviat (ON). Preferències **per dispositiu** a
-[src/auth/session.ts](src/auth/session.ts) (localStorage) + hook reactiu
+secció commutable des d'Ajustos: botó d'avaries (OFF per defecte), botó de documentació (OFF
+per defecte), durada estimada (ON), recursos (OFF), caduca aviat (ON). Preferències **per
+dispositiu** a [src/auth/session.ts](src/auth/session.ts) (localStorage) + hook reactiu
 [src/hooks/useDashboardPrefs.ts](src/hooks/useDashboardPrefs.ts). El botó d'avaries porta un
-badge amb el comptador d'actives tenyit amb el color de la més greu.
+badge amb el comptador d'actives tenyit amb el color de la més greu; el de documentació, un
+badge ambre amb quants documents caduquen dins el llindar configurat.
+
+**Documentació tècnica del veler** — event sourcing pur, modelat sobre les avaries però amb
+**fitxer adjunt (PDF/imatge)**, **caducitat**, **versions** (renovació) i **comentaris lligats
+a la versió vigent**. Events a [src/types/events.ts](src/types/events.ts): `document_create`
+(títol, descripció, `category` enum fix, `data: DocVersionData`; el `docId` és l'id del propi
+create), `document_edit` (canvia metadades de la versió vigent, NO crea versió), `document_renew`
+(nova versió; l'antiga queda a l'historial), `document_comment` (text XOR foto, amb `versionSeq`),
+`document_comment_delete` (oculta un comentari), `document_delete` i `document_barrier` (reset,
+anàleg a `fault_barrier`). L'estat es deriva a
+[src/domain/documents/deriveDocuments.ts](src/domain/documents/deriveDocuments.ts) (pur, amb
+tests) → cau Dexie `documents` (v5, regenerada a `recomputeAll`). Commands a
+[src/db/commands.ts](src/db/commands.ts) (`commitDocument*`); el reset fa barrera + neteja física
+(local `purgeDocumentsBeforeBarrier` + RPC `reset_document_events`, migració
+[0009](supabase/migrations/0009_document_reset.sql)) amb cascada al `syncEngine`, igual que el
+reset d'avaries. **Llindar d'avís de caducitat** ("caduca en menys de X dies"): per dispositiu,
+NO sincronitzat ([src/auth/session.ts](src/auth/session.ts) + hook
+[src/hooks/useDocExpiryWarning.ts](src/hooks/useDocExpiryWarning.ts)). UI:
+[src/routes/Documents.tsx](src/routes/Documents.tsx) (carpetes per categoria amb badge "caduquen
+aviat" + cerca/ordenació + crear) i [src/routes/DocumentsHistory.tsx](src/routes/DocumentsHistory.tsx)
+(historial general **agrupat per document**); components a `src/features/documents/`
+(`DocumentCard` amb expandir/editar/renovar/comentaris/historial-per-document/eliminar,
+formularis i visor de fitxer). **Cua de fitxers:** la de fotos
+([src/sync/photoQueue.ts](src/sync/photoQueue.ts)) s'ha generalitzat (camps `mime`/`ext` a
+`PendingPhoto`) per pujar PDF al mateix bucket `boat-photos` sense canvis a Supabase.
 
 **Icones d'objecte (Iconify offline):** el selector d'icones d'un objecte (`IconPicker`)
 mostra ~6.400 icones de línia (Tabler complet + un subconjunt curat de Game Icons), totes
@@ -252,7 +283,7 @@ Icons es regenera amb `node scripts/build-game-icons-subset.mjs`. Les icones de 
 
 ```powershell
 npx tsc -b --noEmit        # ha de dir res (sense errors)
-npx vitest run             # 36 tests han de passar
+npx vitest run             # tots els tests han de passar (124 actualment)
 npm run build              # ha de generar dist/sw.js + manifest
 ```
 

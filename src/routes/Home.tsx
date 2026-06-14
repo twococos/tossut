@@ -10,15 +10,19 @@ import {
   Book,
   Gauge,
   AlertTriangle,
+  FileText,
   resourceIcon,
 } from '@/components/ui/icons';
 import { ObjectIcon } from '@/components/ui/ObjectIcon';
 import { ObjectDetail } from '@/features/objects/ObjectDetail';
 import { useDurations, useExpiring, useResourceDurations } from '@/hooks/useDerived';
-import { useObjects, useInventoryMap, useFaults } from '@/hooks/useData';
+import { useObjects, useInventoryMap, useFaults, useDocuments } from '@/hooks/useData';
 import { useDashboardPrefs } from '@/hooks/useDashboardPrefs';
+import { useDocExpiryWarning } from '@/hooks/useDocExpiryWarning';
 import { activeFaults, highestActiveSeverity, SEVERITY_DOT } from '@/domain/faults/deriveFaults';
+import { expiringCount } from '@/domain/documents/deriveDocuments';
 import { formatQuantity } from '@/lib/format';
+import { nowISO } from '@/lib/time';
 import { t } from '@/text';
 
 /** Dashboard / portada: centrat en el menjar (el més usat). PLA.md secció 12.1. */
@@ -31,6 +35,8 @@ export function Home() {
   const objects = useObjects() ?? [];
   const invMap = useInventoryMap();
   const faults = useFaults() ?? [];
+  const documents = useDocuments() ?? [];
+  const docWarningDays = useDocExpiryWarning();
   const [detail, setDetail] = useState<ItemObject | null>(null);
   const [waterList, setWaterList] = useState(false);
 
@@ -39,6 +45,15 @@ export function Home() {
   const faultsMap = new Map(faults.map((f) => [f.id, f]));
   const activeFaultCount = activeFaults(faultsMap).length;
   const topSeverity = highestActiveSeverity(faultsMap);
+
+  const docExpiringCount = expiringCount(documents, docWarningDays, nowISO());
+
+  // Columnes de la fila de botons secundaris segons quants n'hi ha (2 fixos + opcionals).
+  // Classes literals (no dinàmiques) perquè Tailwind les detecti al purgar.
+  const secondaryCount =
+    2 + (prefs.showFaultsButton ? 1 : 0) + (prefs.showDocumentsButton ? 1 : 0);
+  const secondaryCols =
+    secondaryCount === 2 ? 'grid-cols-2' : secondaryCount === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
   return (
     <div className="flex flex-col gap-5 pt-2">
@@ -60,9 +75,9 @@ export function Home() {
         </button>
       </div>
 
-      {/* Botons petits secundaris (meitat d'alçada). Tres columnes si el botó d'avaries
-          està actiu, altrament dues. */}
-      <div className={`grid gap-3 ${prefs.showFaultsButton ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      {/* Botons petits secundaris (meitat d'alçada). Columnes segons quants botons opcionals
+          (avaries, documentació) hi ha actius. */}
+      <div className={`grid gap-3 ${secondaryCols}`}>
         <button
           onClick={() => navigate('/purchase')}
           className="flex min-h-touch flex-row items-center justify-center gap-2 rounded-2xl bg-boat-100 text-boat-900 shadow-sm active:scale-95"
@@ -89,6 +104,20 @@ export function Home() {
                 className={`absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold ${SEVERITY_DOT[topSeverity]}`}
               >
                 {activeFaultCount}
+              </span>
+            )}
+          </button>
+        )}
+        {prefs.showDocumentsButton && (
+          <button
+            onClick={() => navigate('/documents')}
+            className="relative flex min-h-touch flex-row items-center justify-center gap-2 rounded-2xl bg-boat-100 text-boat-900 shadow-sm active:scale-95"
+          >
+            <FileText size={24} />
+            <span className="text-sm font-semibold">{t.home.documents}</span>
+            {docExpiringCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-xs font-bold text-white">
+                {docExpiringCount}
               </span>
             )}
           </button>

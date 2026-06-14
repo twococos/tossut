@@ -21,6 +21,8 @@ import { History } from './routes/History';
 import { Expiring } from './routes/Expiring';
 import { Faults } from './routes/Faults';
 import { FaultsHistory } from './routes/FaultsHistory';
+import { Documents } from './routes/Documents';
+import { DocumentsHistory } from './routes/DocumentsHistory';
 import { Settings } from './routes/Settings';
 import { t } from '@/text';
 
@@ -49,6 +51,8 @@ const router = createHashRouter([
       { path: 'expiring', element: <Expiring /> },
       { path: 'faults', element: <Faults /> },
       { path: 'faults/history', element: <FaultsHistory /> },
+      { path: 'documents', element: <Documents /> },
+      { path: 'documents/history', element: <DocumentsHistory /> },
       { path: 'settings', element: <Settings /> },
     ],
   },

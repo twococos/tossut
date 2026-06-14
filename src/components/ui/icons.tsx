@@ -46,6 +46,16 @@ import {
   CheckCircle,
   Plus,
   ImagePlus,
+  FileText,
+  FilePlus,
+  FileCheck,
+  RefreshCw,
+  FolderOpen,
+  Calendar,
+  MapPin,
+  Hash,
+  Building2,
+  Eye,
   type LucideIcon,
 } from 'lucide-react';
 import type { StockDeltaReason } from '@/types/events';
@@ -92,6 +102,16 @@ export {
   CheckCircle,
   Plus,
   ImagePlus,
+  FileText,
+  FilePlus,
+  FileCheck,
+  RefreshCw,
+  FolderOpen,
+  Calendar,
+  MapPin,
+  Hash,
+  Building2,
+  Eye,
 };
 export type { LucideIcon };
 
@@ -141,7 +161,7 @@ export function resourceIcon(kind: ResourceKind): LucideIcon {
 
 /** Icona per a cada tipus d'event d'avaria a l'historial. */
 export function faultEventIcon(
-  type: 'report' | 'update' | 'resolve',
+  type: 'report' | 'update' | 'resolve' | 'reopen',
 ): LucideIcon {
   switch (type) {
     case 'report':
@@ -150,6 +170,37 @@ export function faultEventIcon(
       return MessageSquarePlus;
     case 'resolve':
       return CheckCircle;
+    case 'reopen':
+      return RotateCcw;
+  }
+}
+
+/** Icona per a cada tipus d'event de document a l'historial. */
+export function documentEventIcon(
+  type:
+    | 'create'
+    | 'edit'
+    | 'renew'
+    | 'comment'
+    | 'comment_delete'
+    | 'delete'
+    | 'restore',
+): LucideIcon {
+  switch (type) {
+    case 'create':
+      return FilePlus;
+    case 'edit':
+      return Pencil;
+    case 'renew':
+      return RefreshCw;
+    case 'comment':
+      return MessageSquarePlus;
+    case 'comment_delete':
+      return X;
+    case 'delete':
+      return Trash2;
+    case 'restore':
+      return RotateCcw;
   }
 }
 

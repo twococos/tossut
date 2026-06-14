@@ -12,6 +12,7 @@ import type {
 import type { AppEvent } from '@/types/events';
 import type { DerivedFault } from '@/domain/faults/deriveFaults';
 import type { DerivedShoppingItem } from '@/domain/shopping/deriveShoppingList';
+import type { DerivedDocument } from '@/domain/documents/deriveDocuments';
 
 /** Estat de sincronització d'una fila d'esdeveniment local. */
 export type Pending = 0 | 1;
@@ -22,13 +23,15 @@ export type LocalEvent = AppEvent & {
   _serverSeq?: number; // ordre global assignat pel servidor (un cop sincronitzat)
 };
 
-/** Foto pendent de pujar (feta offline). */
+/** Fitxer pendent de pujar (fet/triat offline): foto o document (PDF/imatge). */
 export interface PendingPhoto {
   id: string;
   blob: Blob;
-  targetType: 'object' | 'location' | 'app' | 'fault';
+  targetType: 'object' | 'location' | 'app' | 'fault' | 'document';
   targetId: string;
   createdAt: string;
+  mime?: string; // contentType real per pujar (per defecte image/jpeg)
+  ext?: string; // extensió de la ruta a Storage (per defecte jpg)
 }
 
 /** Metadades de sincronització (una sola fila amb key 'sync'). */
@@ -60,6 +63,7 @@ export class BoatDB extends Dexie {
   resourceStates!: Table<ResourceState, string>; // CAU derivada (recursos continus)
   faults!: Table<DerivedFault, string>; // CAU derivada (avaries)
   shoppingItems!: Table<DerivedShoppingItem, string>; // CAU derivada (llista de la compra)
+  documents!: Table<DerivedDocument, string>; // CAU derivada (documentació tècnica)
   pendingPhotos!: Table<PendingPhoto, string>;
   meta!: Table<SyncMeta, string>;
 
@@ -93,6 +97,11 @@ export class BoatDB extends Dexie {
     // recompute, només cal declarar el store nou). Clau primària = objectId (agregat).
     this.version(4).stores({
       shoppingItems: 'objectId',
+    });
+    // v5: cau derivada de la documentació tècnica (projecció del log; es regenera a cada
+    // recompute, només cal declarar el store nou).
+    this.version(5).stores({
+      documents: 'id, category, deleted',
     });
   }
 }

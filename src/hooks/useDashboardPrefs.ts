@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   getShowFaultsButton,
+  getShowDocumentsButton,
   getShowDurationSection,
   getShowResourcesSection,
   getShowExpiringSection,
@@ -8,6 +9,7 @@ import {
 
 export interface DashboardPrefs {
   showFaultsButton: boolean;
+  showDocumentsButton: boolean;
   showDurationSection: boolean;
   showResourcesSection: boolean;
   showExpiringSection: boolean;
@@ -16,6 +18,7 @@ export interface DashboardPrefs {
 function read(): DashboardPrefs {
   return {
     showFaultsButton: getShowFaultsButton(),
+    showDocumentsButton: getShowDocumentsButton(),
     showDurationSection: getShowDurationSection(),
     showResourcesSection: getShowResourcesSection(),
     showExpiringSection: getShowExpiringSection(),
