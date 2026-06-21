@@ -15,9 +15,12 @@ body,
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
-  /* Respecta les zones segures de l'iPhone (notch / home indicator) */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* Les zones segures (notch / home indicator) NO es compensen aquí: si el body
+     porta padding-bottom, a iOS els elements `position: fixed; bottom: 0`
+     s'ancoren a la vora del padding del body i queden flotant amb un buit a sota
+     (variable segons el model d'iPhone). Cada element fix gestiona la seva pròpia
+     safe area (p. ex. la barra de navegació amb pb-[env(safe-area-inset-bottom)]). */
+  padding: 0;
 }
 
 @layer components {

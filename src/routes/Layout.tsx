@@ -111,7 +111,7 @@ export function Layout() {
       {/* Columna de contingut */}
       <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0">
         {/* Capçalera (només mòbil) */}
-        <header className="flex items-center justify-between px-4 py-2 lg:hidden">
+        <header className="flex items-center justify-between px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] lg:hidden lg:pt-2">
           <button
             onClick={() => navigate('/settings')}
             aria-label={t.nav.settingsAria}
@@ -130,7 +130,7 @@ export function Layout() {
           </div>
         )}
 
-        <main className="flex flex-1 flex-col overflow-y-auto px-4 pb-24 pt-2 lg:px-8 lg:pb-8 lg:pt-8">
+        <main className="flex flex-1 flex-col overflow-y-auto pb-24 pt-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:pb-8 lg:pl-8 lg:pr-8 lg:pt-8">
           {/* `key` per ruta → cada navegació refà el fade d'entrada. El wrapper creix amb
               flex-1 (no amb height:%) perquè les pàgines puguin ancorar contingut a baix amb
               un fill `flex-1` + `mt-auto` (p.ex. el botó del Mode compra). En gran es centra
@@ -145,7 +145,7 @@ export function Layout() {
       </div>
 
       {/* Barra de navegació inferior (només mòbil) */}
-      <nav className="fixed bottom-0 left-0 right-0 flex justify-around border-t border-boat-100 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 flex justify-around border-t border-boat-100 bg-white pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] lg:hidden">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
