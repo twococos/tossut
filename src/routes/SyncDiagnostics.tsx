@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/common';
 import { useSync } from '@/sync/SyncProvider';
 import {
   getSyncDiagnostics,
+  repairDuplicateDeviceSeq,
   type SyncDiagnostics as Diag,
 } from '@/db/repositories/events.repo';
 import { relativeFromNow } from '@/lib/time';
@@ -19,6 +20,8 @@ export function SyncDiagnostics() {
   const { syncNow } = useSync();
   const [diag, setDiag] = useState<Diag | null>(null);
   const [copied, setCopied] = useState(false);
+  const [repairing, setRepairing] = useState(false);
+  const [repairMsg, setRepairMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setDiag(await getSyncDiagnostics());
@@ -31,6 +34,19 @@ export function SyncDiagnostics() {
   const onSync = useCallback(async () => {
     await syncNow();
     await load();
+  }, [syncNow, load]);
+
+  const onRepair = useCallback(async () => {
+    setRepairing(true);
+    setRepairMsg(null);
+    try {
+      const n = await repairDuplicateDeviceSeq();
+      setRepairMsg(t.diagnostics.repairDone(n));
+      if (n > 0) await syncNow();
+    } finally {
+      setRepairing(false);
+      await load();
+    }
   }, [syncNow, load]);
 
   const onCopy = useCallback(async () => {
@@ -92,6 +108,12 @@ export function SyncDiagnostics() {
             ))}
           </ul>
         )}
+        {diag.duplicateDeviceSeq.length > 0 && (
+          <Button onClick={() => void onRepair()} disabled={repairing}>
+            {repairing ? t.diagnostics.repairing : t.diagnostics.repair}
+          </Button>
+        )}
+        {repairMsg && <p className="text-sm text-boat-600">{repairMsg}</p>}
       </Card>
 
       {/* Estat */}

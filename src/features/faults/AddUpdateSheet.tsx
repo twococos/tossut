@@ -27,12 +27,16 @@ export function AddUpdateSheet({
   const [text, setText] = useState('');
   const [photoPath, setPhotoPath] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
+  // Guarda anti-doble-submissió: un segon toc al botó "Desar" abans que el panell es
+  // tanqui emetia un segon fault_update idèntic (mateix seq) i bloquejava el sync.
+  const [submitting, setSubmitting] = useState(false);
   const previewUrl = useLocationPhoto(photoPath);
 
   function reset() {
     setText('');
     setPhotoPath(undefined);
     setBusy(false);
+    setSubmitting(false);
   }
 
   function closeAndReset() {
@@ -58,13 +62,15 @@ export function AddUpdateSheet({
 
   function submitText() {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
     onSubmit({ text: trimmed });
     reset();
   }
 
   function submitPhoto() {
-    if (!photoPath) return;
+    if (!photoPath || submitting) return;
+    setSubmitting(true);
     onSubmit({ photoPath });
     reset();
   }
@@ -115,7 +121,9 @@ export function AddUpdateSheet({
               <Button variant="secondary" onClick={() => setPhotoPath(undefined)}>
                 {t.faults.discardPhoto}
               </Button>
-              <Button onClick={submitPhoto}>{t.faults.saveUpdate}</Button>
+              <Button onClick={submitPhoto} disabled={submitting}>
+                {t.faults.saveUpdate}
+              </Button>
             </div>
           </>
         ) : (
@@ -129,7 +137,7 @@ export function AddUpdateSheet({
               autoFocus
               disabled={busy}
             />
-            <Button onClick={submitText} disabled={!text.trim() || busy}>
+            <Button onClick={submitText} disabled={!text.trim() || busy || submitting}>
               {busy ? t.faults.processing : t.faults.saveUpdate}
             </Button>
           </>

@@ -747,6 +747,12 @@ export const ca = {
       "L'ID de dispositiu a IndexedDB i a localStorage no coincideixen (possible reinici de dades).",
     probNonUuid: (n: number) =>
       `${n} esdeveniment(s) amb id no vàlid que el servidor rebutja.`,
+    repair: "Reparar i tornar a sincronitzar",
+    repairing: "Reparant…",
+    repairDone: (n: number) =>
+      n > 0
+        ? `${n} esdeveniment(s) reparat(s). Sincronitzant…`
+        : "No hi havia res a reparar.",
   },
 } as const
 

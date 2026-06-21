@@ -170,6 +170,68 @@ export async function purgeDocumentsBeforeBarrier(
   return toDelete.length;
 }
 
+/**
+ * Repara duplicats `(deviceId, seq)` reassignant un `seq` nou als esdeveniments PENDENTS
+ * que xoquen amb un altre esdeveniment del mateix dispositiu i seq. Desbloqueja el push:
+ * el servidor té un índex únic sobre (device_id, seq) i un duplicat avorta tot el lot.
+ *
+ * Per a cada (deviceId, seq) amb més d'un esdeveniment, es conserva intacte el que NO està
+ * pendent (o, si tots ho estan, el primer per ordre `id` —monòton, UUID v7) i es reassigna
+ * `seq` a la resta. El `seq` nou surt d'un comptador per damunt del màxim seq existent
+ * d'aquell dispositiu, i si és el dispositiu propi també s'avança `localSeq` per no tornar a
+ * col·lisionar. `occurredAt` NO es toca: l'ordre real del fold el marca `occurredAt`, no el
+ * seq, així que la derivació no canvia. Retorna quants esdeveniments s'han reassignat.
+ */
+export async function repairDuplicateDeviceSeq(): Promise<number> {
+  const { getMeta, putMeta } = await import('./meta.repo');
+  return db.transaction('rw', db.events, db.meta, async () => {
+    const meta = await getMeta();
+    const rows = await db.events.toArray();
+
+    // Agrupa per (deviceId, seq).
+    const groups = new Map<string, LocalEvent[]>();
+    for (const r of rows) {
+      const k = `${r.deviceId}|${r.seq}`;
+      const g = groups.get(k);
+      if (g) g.push(r);
+      else groups.set(k, [r]);
+    }
+
+    // seq màxim per dispositiu, per generar valors nous que no col·lisionin.
+    const maxSeqByDevice = new Map<string, number>();
+    for (const r of rows) {
+      const cur = maxSeqByDevice.get(r.deviceId) ?? 0;
+      if (r.seq > cur) maxSeqByDevice.set(r.deviceId, r.seq);
+    }
+
+    let repaired = 0;
+    for (const group of groups.values()) {
+      if (group.length < 2) continue;
+      // Tria el supervivent: preferim un de no-pendent (ja és al servidor); si no, el de
+      // menor id (UUID v7 → cronològic) perquè el resultat sigui determinista.
+      const sorted = [...group].sort((a, b) => {
+        if (a._pending !== b._pending) return a._pending - b._pending; // 0 abans que 1
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      });
+      const [, ...toReassign] = sorted;
+      for (const ev of toReassign) {
+        // Només podem reassignar pendents: els ja sincronitzats al servidor són immutables.
+        if (ev._pending !== 1) continue;
+        const nextSeq = (maxSeqByDevice.get(ev.deviceId) ?? 0) + 1;
+        maxSeqByDevice.set(ev.deviceId, nextSeq);
+        await db.events.put({ ...ev, seq: nextSeq });
+        if (ev.deviceId === meta.deviceId && nextSeq > meta.localSeq) {
+          meta.localSeq = nextSeq;
+        }
+        repaired++;
+      }
+    }
+
+    if (repaired > 0) await putMeta(meta);
+    return repaired;
+  });
+}
+
 /** Resultat del diagnòstic de sincronització (per a la pantalla dins l'app). */
 export interface SyncDiagnostics {
   deviceId: string;
