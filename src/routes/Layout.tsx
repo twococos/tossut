@@ -76,7 +76,7 @@ export function Layout() {
   const showOfflineBanner =
     status !== 'not-configured' && (!online || status === 'offline');
   return (
-    <div className="flex min-h-full flex-col bg-boat-50 text-boat-900 lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-boat-50 text-boat-900 lg:flex-row">
       {/* Sidebar (només pantalla gran). Fixa: ocupa tota l'alçada del viewport i no fa
           scroll amb el contingut (l'scroll viu al `main`); el `<nav>` intern fa scroll propi
           si la llista no hi cap. */}
@@ -108,8 +108,9 @@ export function Layout() {
         </div>
       </aside>
 
-      {/* Columna de contingut */}
-      <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0">
+      {/* Columna de contingut. `min-h-0` perquè el `main` intern pugui fer scroll dins
+          l'alçada del viewport en lloc de desbordar la columna. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Capçalera (només mòbil) */}
         <header className="flex items-center justify-between px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] lg:hidden lg:pt-2">
           <button
@@ -130,7 +131,7 @@ export function Layout() {
           </div>
         )}
 
-        <main className="flex flex-1 flex-col overflow-y-auto pb-24 pt-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:pb-8 lg:pl-8 lg:pr-8 lg:pt-8">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6 pt-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:pb-8 lg:pl-8 lg:pr-8 lg:pt-8">
           {/* `key` per ruta → cada navegació refà el fade d'entrada. El wrapper creix amb
               flex-1 (no amb height:%) perquè les pàgines puguin ancorar contingut a baix amb
               un fill `flex-1` + `mt-auto` (p.ex. el botó del Mode compra). En gran es centra
@@ -142,10 +143,13 @@ export function Layout() {
             <Outlet />
           </div>
         </main>
-      </div>
 
-      {/* Barra de navegació inferior (només mòbil) */}
-      <nav className="fixed bottom-0 left-0 right-0 flex justify-around border-t border-boat-100 bg-white pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] lg:hidden">
+        {/* Barra de navegació inferior (només mòbil). En flux normal (NO `fixed`) com a
+            últim fill de la columna flex: queda sempre enganxada a baix del viewport sense
+            dependre del comportament de `position: fixed` a iOS, que hi deixava un buit
+            variable sobre el home indicator. El `pb` de la safe area l'empeny per sobre
+            del home indicator amb el fons blanc cobrint fins a la vora física. */}
+        <nav className="flex shrink-0 justify-around border-t border-boat-100 bg-white pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] lg:hidden">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -164,7 +168,8 @@ export function Layout() {
             </NavLink>
           );
         })}
-      </nav>
+        </nav>
+      </div>
     </div>
   );
 }

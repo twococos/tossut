@@ -12,6 +12,16 @@ body,
   height: 100%;
 }
 
+/* iOS (Safari i PWA standalone): `height: 100%`/`100vh` a l'arrel fa que la *layout
+   viewport* (on s'ancora `position: fixed`) sigui més alta que l'àrea visible, de
+   manera que la barra `fixed bottom-0` cau parcialment sota el home indicator i hi
+   deixa un buit que varia segons el model. Fixar l'arrel a `100dvh` fa que la layout
+   viewport coincideixi amb la visible. `100vh` és el fallback per a navegadors antics. */
+#root {
+  height: 100vh;
+  height: 100dvh;
+}
+
 body {
   margin: 0;
   -webkit-tap-highlight-color: transparent;
