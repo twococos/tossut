@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { StowageLocation } from '@/types/entities';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/common';
-import { Archive, Pencil } from '@/components/ui/icons';
+import { Pencil, Trash2 } from '@/components/ui/icons';
 import { LocationForm } from '@/features/locations/LocationForm';
+import { ROOMS, roomIdOf } from '@/features/locations/rooms';
 import { useLocations, useHeaderLocation } from '@/hooks/useData';
 import { useLocationPhoto } from '@/hooks/useLocationPhoto';
 import { Photo } from '@/components/ui/Photo';
@@ -26,6 +26,16 @@ export function LocationsList() {
   const editLocked = useEditLocked();
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Recompte de llocs per estància (els llocs sense estància no es mostren a cap targeta).
+  const countByRoom = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of locations) {
+      const id = roomIdOf(l);
+      m.set(id, (m.get(id) ?? 0) + 1);
+    }
+    return m;
+  }, [locations]);
 
   // Foto de capçalera global, sincronitzada: viu al photoPath d'un lloc reservat.
   const headerLocation = useHeaderLocation();
@@ -55,6 +65,19 @@ export function LocationsList() {
     }
   }
 
+  async function removeHeader() {
+    if (!userName || !headerLocation) return;
+    const now = nowISO();
+    // Upsert del lloc reservat sense photoPath: esborra la referència a la foto.
+    await commitLocationUpsert(userName, {
+      id: HEADER_LOCATION_ID,
+      name: '__capçalera__',
+      photoPath: undefined,
+      createdAt: headerLocation.createdAt ?? now,
+      updatedAt: now,
+    });
+  }
+
   async function save(l: StowageLocation) {
     if (!userName) return;
     await commitLocationUpsert(userName, l);
@@ -66,11 +89,22 @@ export function LocationsList() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t.locations.title}</h1>
         {!editLocked && (
-          <label className="flex cursor-pointer items-center gap-1 text-sm text-boat-600 active:scale-95">
-            <Pencil size={16} />
-            {busy ? t.locations.processing : headerUrl ? t.locations.changePhoto : t.locations.addPhoto}
-            <input type="file" accept="image/*" className="hidden" onChange={onPickHeader} />
-          </label>
+          <div className="flex items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-1 text-sm text-boat-600 active:scale-95">
+              <Pencil size={16} />
+              {busy ? t.locations.processing : headerUrl ? t.locations.changePhoto : t.locations.addPhoto}
+              <input type="file" accept="image/*" className="hidden" onChange={onPickHeader} />
+            </label>
+            {headerUrl && (
+              <button
+                onClick={() => void removeHeader()}
+                className="flex items-center gap-1 text-sm text-red-600 active:scale-95"
+              >
+                <Trash2 size={16} />
+                {t.locations.removePhoto}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -80,23 +114,26 @@ export function LocationsList() {
         </div>
       )}
 
-      {locations.length === 0 ? (
-        <EmptyState icon={Archive} text={t.locations.empty} />
-      ) : (
-        <ul className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
-          {locations.map((l) => (
-            <li key={l.id}>
+      <ul className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
+        {ROOMS.map((r) => {
+          const Icon = r.icon;
+          const count = countByRoom.get(r.id) ?? 0;
+          return (
+            <li key={r.id} className="flex">
               <button
-                onClick={() => navigate(`/locations/${l.id}`)}
-                className="flex min-h-touch w-full flex-col items-start justify-center gap-1 rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
+                onClick={() => navigate(`/locations/room/${r.id}`)}
+                className="flex h-full min-h-touch w-full flex-col items-start justify-start gap-2 rounded-2xl bg-white p-4 shadow-sm active:scale-[0.98]"
               >
-                <Archive size={26} className="text-boat-700" />
-                <span className="font-semibold">{l.name}</span>
+                <Icon size={28} className="text-boat-700" />
+                <span className="w-full text-left text-base font-semibold leading-tight">{t.rooms[r.id]}</span>
+                <span className="w-full text-left text-sm text-boat-500">
+                  {t.locations.roomCount(count)}
+                </span>
               </button>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        })}
+      </ul>
 
       {!editLocked && <Button onClick={() => setCreating(true)}>{t.locations.newLocation}</Button>}
 

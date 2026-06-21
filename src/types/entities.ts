@@ -38,11 +38,26 @@ export type ExpiryPolicy =
   | { mode: 'define_on_add' };
 
 // ── llocs d'estiva ───────────────────────────────────────────────────────────
+/**
+ * Estància del vaixell on s'agrupen els llocs. Llista fixa al codi; la definició
+ * completa (icona, foto) viu a `features/locations/rooms.ts`.
+ */
+export type RoomId =
+  | 'salon'
+  | 'kitchen'
+  | 'cabin_bow'
+  | 'cabin_starboard'
+  | 'cabin_port'
+  | 'bathroom'
+  | 'deck'
+  | 'other'; // estància "Altres": llocs sense estància assignada
+
 export interface StowageLocation {
   id: ID;
   name: string;
   description?: string;
   photoPath?: string; // ruta a Supabase Storage
+  room?: RoomId; // estància del vaixell on és el lloc (llista fixa, veure features/locations/rooms.ts)
   parentId?: ID | null; // jerarquia opcional (no obligatòria)
   createdAt: ISOTimestamp;
   updatedAt: ISOTimestamp;

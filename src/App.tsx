@@ -14,6 +14,7 @@ import { ShoppingList } from './routes/ShoppingList';
 import { ShoppingHistory } from './routes/ShoppingHistory';
 import { ObjectsList } from './routes/ObjectsList';
 import { LocationsList } from './routes/LocationsList';
+import { RoomView } from './routes/RoomView';
 import { LocationView } from './routes/LocationView';
 import { Recipes } from './routes/Recipes';
 import { Checklists } from './routes/Checklists';
@@ -46,6 +47,7 @@ const router = createHashRouter([
       { path: 'objects/recipes', element: <Recipes /> },
       { path: 'recipes', element: <Recipes /> },
       { path: 'locations', element: <LocationsList /> },
+      { path: 'locations/room/:room', element: <RoomView /> },
       { path: 'locations/:id', element: <LocationView /> },
       { path: 'checklists', element: <Checklists /> },
       { path: 'history', element: <History /> },

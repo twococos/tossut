@@ -541,10 +541,37 @@ export const ca = {
     processing: "Processant…",
     changePhoto: "Canviar foto",
     addPhoto: "Afegir foto",
+    removePhoto: "Esborrar foto",
     headerAlt: "Estiva del vaixell",
     empty: "Cap lloc definit encara.",
     newLocation: "+ Nou lloc",
     newLocationTitle: "Nou lloc",
+    roomCount: (n: number) => (n === 1 ? "1 lloc" : `${n} llocs`),
+  },
+
+  /** Estàncies del vaixell (clau = RoomId). */
+  rooms: {
+    salon: "Saló",
+    kitchen: "Cuina",
+    cabin_bow: "Camarot de Proa",
+    cabin_starboard: "Camarot d'Estribord",
+    cabin_port: "Camarot de Babord",
+    bathroom: "Lavabo",
+    deck: "Coberta",
+    other: "Altres",
+  },
+
+  /** Vista d'una estància (llista de llocs que conté). */
+  roomView: {
+    back: "← Estàncies",
+    changePhoto: "Canviar foto",
+    addPhoto: "Afegir foto",
+    removePhoto: "Esborrar foto",
+    processing: "Processant…",
+    photoAlt: (name: string) => `Foto de ${name}`,
+    empty: "Cap lloc en aquesta estància encara.",
+    newLocation: "+ Nou lloc",
+    notFound: "Estància no trobada.",
   },
 
   /** Vista d'un lloc. */
@@ -568,10 +595,13 @@ export const ca = {
   locationForm: {
     namePlaceholder: "Nom del lloc",
     descriptionPlaceholder: "Descripció (opcional)",
+    room: "Estància",
+    roomNone: "Sense estància",
     image: "Imatge del lloc",
     processing: "Processant…",
     changeImage: "Canviar imatge",
     addImage: "Afegir imatge",
+    removeImage: "Esborrar imatge",
   },
 
   /** Receptes. */

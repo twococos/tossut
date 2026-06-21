@@ -10,6 +10,8 @@ import type {
   ResourceState,
 } from '@/types/entities';
 import { HEADER_LOCATION_ID } from '@/features/locations/headerLocation';
+import { ROOM_PHOTO_LOCATION_IDS } from '@/features/locations/rooms';
+import type { RoomDef } from '@/features/locations/rooms';
 
 /**
  * Hooks de lectura reactius sobre les caus de Dexie.
@@ -21,14 +23,17 @@ import { HEADER_LOCATION_ID } from '@/features/locations/headerLocation';
 
 export const useObjects = () => useLiveQuery(() => db.objects.toArray(), [], []);
 
+/** IDs reservats (no són llocs reals): capçalera + foto de cada estància. */
+const RESERVED_LOCATION_IDS = new Set([HEADER_LOCATION_ID, ...ROOM_PHOTO_LOCATION_IDS]);
+
 /**
- * Llocs d'estiva visibles. Exclou el "lloc" reservat que només transporta la foto
- * de capçalera sincronitzada (veure features/locations/headerLocation), perquè cap
- * consumidor (llistes, selectors, vista de compartiment) el tracti com un real.
+ * Llocs d'estiva visibles. Exclou els "llocs" reservats que només transporten fotos
+ * sincronitzades (capçalera i fotos d'estància), perquè cap consumidor (llistes,
+ * selectors, vista de compartiment) els tracti com a reals.
  */
 export const useLocations = () =>
   useLiveQuery(
-    () => db.locations.where('id').notEqual(HEADER_LOCATION_ID).toArray(),
+    () => db.locations.filter((l) => !RESERVED_LOCATION_IDS.has(l.id)).toArray(),
     [],
     [],
   );
@@ -36,6 +41,14 @@ export const useLocations = () =>
 /** Lloc reservat que porta la foto de capçalera de la pàgina de Llocs (o undefined). */
 export const useHeaderLocation = (): StowageLocation | undefined =>
   useLiveQuery(() => db.locations.get(HEADER_LOCATION_ID), []);
+
+/** Lloc reservat que porta la foto d'una estància (o undefined). */
+export const useRoomPhotoLocation = (room: RoomDef | undefined): StowageLocation | undefined =>
+  useLiveQuery(
+    () => (room ? db.locations.get(room.photoLocationId) : undefined),
+    [room?.photoLocationId],
+  );
+
 export const useRecipes = () => useLiveQuery(() => db.recipes.toArray(), [], []);
 export const useChecklists = () =>
   useLiveQuery(() => db.checklistTemplates.toArray(), [], []);

@@ -56,6 +56,11 @@ import {
   Hash,
   Building2,
   Eye,
+  Table,
+  CookingPot,
+  Bed,
+  Toilet,
+  Sun,
   type LucideIcon,
 } from 'lucide-react';
 import type { StockDeltaReason } from '@/types/events';
@@ -112,6 +117,11 @@ export {
   Hash,
   Building2,
   Eye,
+  Table,
+  CookingPot,
+  Bed,
+  Toilet,
+  Sun,
 };
 export type { LucideIcon };
 

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import type { StowageLocation } from '@/types/entities';
+import type { StowageLocation, RoomId } from '@/types/entities';
+import { SELECTABLE_ROOMS } from '@/features/locations/rooms';
 import { Button } from '@/components/ui/Button';
 import { ObjectIcon } from '@/components/ui/ObjectIcon';
-import { Archive } from '@/components/ui/icons';
+import { Archive, Trash2 } from '@/components/ui/icons';
 import { useLocationPhoto } from '@/hooks/useLocationPhoto';
 import { enqueuePhoto } from '@/sync/photoQueue';
 import { resizeImageToBlob } from '@/lib/image';
@@ -13,10 +14,13 @@ import { t } from '@/text';
 /** Formulari de creació/edició d'un lloc d'estiva. PLA.md secció 12.5. */
 export function LocationForm({
   initial,
+  initialRoom,
   onSave,
   onCancel,
 }: {
   initial?: StowageLocation;
+  /** Estància preseleccionada en crear un lloc des de dins d'una estància. */
+  initialRoom?: RoomId;
   onSave: (l: StowageLocation) => void;
   onCancel: () => void;
 }) {
@@ -24,6 +28,7 @@ export function LocationForm({
   const idRef = useRef(initial?.id ?? newId());
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [room, setRoom] = useState<RoomId | ''>(initial?.room ?? initialRoom ?? '');
   const [photoPath, setPhotoPath] = useState(initial?.photoPath);
   const [busy, setBusy] = useState(false);
   const previewUrl = useLocationPhoto(photoPath);
@@ -52,6 +57,7 @@ export function LocationForm({
       id: idRef.current,
       name: name.trim(),
       description: description.trim() || undefined,
+      room: room || undefined,
       photoPath,
       parentId: initial?.parentId ?? null,
       createdAt: initial?.createdAt ?? now,
@@ -69,6 +75,16 @@ export function LocationForm({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+
+      <label className="text-sm font-medium text-boat-700">{t.locationForm.room}</label>
+      <select className={field} value={room} onChange={(e) => setRoom(e.target.value as RoomId | '')}>
+        <option value="">{t.locationForm.roomNone}</option>
+        {SELECTABLE_ROOMS.map((r) => (
+          <option key={r.id} value={r.id}>
+            {t.rooms[r.id]}
+          </option>
+        ))}
+      </select>
 
       <label className="text-sm font-medium text-boat-700">{t.locationForm.image}</label>
       <div className="flex items-center gap-3">
@@ -89,6 +105,16 @@ export function LocationForm({
             onChange={onPickPhoto}
           />
         </label>
+        {previewUrl && (
+          <button
+            type="button"
+            onClick={() => setPhotoPath(undefined)}
+            aria-label={t.locationForm.removeImage}
+            className="btn-touch flex-shrink-0 bg-red-50 px-3 text-red-600 active:scale-95"
+          >
+            <Trash2 size={18} />
+          </button>
+        )}
       </div>
 
       <div className="mt-2 flex gap-2">
