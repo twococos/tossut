@@ -713,7 +713,40 @@ export const ca = {
     installIosHint:
       "A iPhone: toca el botó de Compartir de Safari i tria «Afegir a la pantalla d'inici».",
     viewHistory: "Veure historial",
+    syncDiagnostics: "Diagnòstic de sincronització",
     signOut: "Tancar sessió",
+  },
+  diagnostics: {
+    title: "Diagnòstic de sincronització",
+    intro:
+      "Aquesta pantalla mostra l'estat intern de la sincronització. Si tens un error de sync, copia tota la informació i passa-la a qui t'ajudi.",
+    refresh: "Actualitzar",
+    copy: "Copiar tot",
+    copied: "Copiat!",
+    runSync: "Provar de sincronitzar ara",
+    noProblems: "No s'ha detectat cap problema conegut.",
+    problemsFound: (n: number) => `${n} possible(s) problema(es) detectat(s):`,
+    sectionState: "Estat",
+    sectionProblems: "Problemes detectats",
+    sectionError: "Últim error de sync",
+    sectionPending: "Esdeveniments pendents",
+    deviceId: "ID de dispositiu",
+    localSeq: "Comptador local (localSeq)",
+    maxSeq: "seq màxim al log",
+    totalEvents: "Esdeveniments totals",
+    pendingEvents: "Pendents d'enviar",
+    noError: "Cap error registrat.",
+    errorAt: (rel: string) => `Registrat: ${rel}`,
+    noPending: "Cap esdeveniment pendent.",
+    // Problemes concrets:
+    probDuplicate: (n: number) =>
+      `${n} parell(s) (dispositiu, seq) duplicat(s). El servidor els rebutja → el push es bloqueja.`,
+    probSeqBehind:
+      "El comptador local (localSeq) és més baix que el seq més alt del log: els canvis nous reutilitzaran números ja usats i el servidor els rebutjarà.",
+    probDeviceMismatch:
+      "L'ID de dispositiu a IndexedDB i a localStorage no coincideixen (possible reinici de dades).",
+    probNonUuid: (n: number) =>
+      `${n} esdeveniment(s) amb id no vàlid que el servidor rebutja.`,
   },
 } as const
 

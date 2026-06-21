@@ -170,8 +170,109 @@ export async function purgeDocumentsBeforeBarrier(
   return toDelete.length;
 }
 
+/** Resultat del diagnòstic de sincronització (per a la pantalla dins l'app). */
+export interface SyncDiagnostics {
+  deviceId: string;
+  localStorageDeviceId: string | null;
+  /** localSeq (IndexedDB) vs deviceId (localStorage) discrepen → reset de comptador. */
+  deviceIdMismatch: boolean;
+  localSeq: number;
+  /** seq màxim entre els events d'aquest dispositiu (per detectar localSeq reiniciat). */
+  maxSeqForDevice: number;
+  /** localSeq < maxSeqForDevice → el comptador s'ha reiniciat, reusarà seq existents. */
+  seqCounterBehind: boolean;
+  totalEvents: number;
+  pendingEvents: number;
+  /** Parells (deviceId, seq) duplicats: violarien l'índex únic del servidor al push. */
+  duplicateDeviceSeq: Array<{ deviceId: string; seq: number; ids: string[]; types: string[] }>;
+  /** *_upsert pendents amb id de payload no-UUID (el trigger els rebutja). */
+  nonUuidUpserts: Array<{ id: string; type: string; payloadId: string }>;
+  pendingDetail: Array<{ id: string; type: string; deviceId: string; seq: number; occurredAt: string }>;
+  lastSyncError?: string;
+  lastSyncErrorAt?: string;
+  lastSyncedAt?: string;
+}
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Recull un retrat de l'estat de sincronització local per diagnosticar errors de sync
+ * des de dins l'app (al mòbil no hi ha consola de desenvolupador). Detecta les causes
+ * conegudes que bloquegen el push: duplicats `(deviceId, seq)` (violen l'índex únic del
+ * servidor), comptador `localSeq` reiniciat, i `*_upsert` amb id no-UUID.
+ */
+export async function getSyncDiagnostics(): Promise<SyncDiagnostics> {
+  const { getMeta } = await import('./meta.repo');
+  const { getDeviceId } = await import('@/lib/deviceId');
+  const meta = await getMeta();
+  const rows = await db.events.toArray();
+
+  // Duplicats (deviceId, seq).
+  const seen = new Map<string, LocalEvent>();
+  const dupMap = new Map<string, { deviceId: string; seq: number; ids: string[]; types: string[] }>();
+  for (const e of rows) {
+    const k = `${e.deviceId}|${e.seq}`;
+    const prev = seen.get(k);
+    if (prev) {
+      const entry = dupMap.get(k) ?? {
+        deviceId: e.deviceId,
+        seq: e.seq,
+        ids: [prev.id],
+        types: [prev.type],
+      };
+      entry.ids.push(e.id);
+      entry.types.push(e.type);
+      dupMap.set(k, entry);
+    } else {
+      seen.set(k, e);
+    }
+  }
+
+  // seq màxim per al dispositiu actual.
+  let maxSeqForDevice = 0;
+  for (const e of rows) {
+    if (e.deviceId === meta.deviceId && e.seq > maxSeqForDevice) maxSeqForDevice = e.seq;
+  }
+
+  // *_upsert pendents amb id no-UUID.
+  const nonUuidUpserts = rows
+    .filter((r) => {
+      if (r._pending !== 1 || !r.type.endsWith('_upsert')) return false;
+      const id = (r as { payload?: { id?: unknown } }).payload?.id;
+      return typeof id === 'string' && !UUID_RE.test(id);
+    })
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      payloadId: String((r as { payload?: { id?: unknown } }).payload?.id),
+    }));
+
+  const pending = rows.filter((r) => r._pending === 1);
+
+  return {
+    deviceId: meta.deviceId,
+    localStorageDeviceId: getDeviceId(),
+    deviceIdMismatch: meta.deviceId !== getDeviceId(),
+    localSeq: meta.localSeq,
+    maxSeqForDevice,
+    seqCounterBehind: meta.localSeq < maxSeqForDevice,
+    totalEvents: rows.length,
+    pendingEvents: pending.length,
+    duplicateDeviceSeq: [...dupMap.values()],
+    nonUuidUpserts,
+    pendingDetail: pending.map((r) => ({
+      id: r.id,
+      type: r.type,
+      deviceId: r.deviceId,
+      seq: r.seq,
+      occurredAt: r.occurredAt,
+    })),
+    lastSyncError: meta.lastSyncError,
+    lastSyncErrorAt: meta.lastSyncErrorAt,
+    lastSyncedAt: meta.lastSyncedAt,
+  };
+}
 
 /**
  * Purga esdeveniments `*_upsert` el payload dels quals té un id que no és un UUID

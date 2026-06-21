@@ -24,6 +24,7 @@ import { FaultsHistory } from './routes/FaultsHistory';
 import { Documents } from './routes/Documents';
 import { DocumentsHistory } from './routes/DocumentsHistory';
 import { Settings } from './routes/Settings';
+import { SyncDiagnostics } from './routes/SyncDiagnostics';
 import { t } from '@/text';
 
 // HashRouter: funciona en hosting estàtic (Cloudflare/GitHub Pages) sense config de
@@ -54,6 +55,7 @@ const router = createHashRouter([
       { path: 'documents', element: <Documents /> },
       { path: 'documents/history', element: <DocumentsHistory /> },
       { path: 'settings', element: <Settings /> },
+      { path: 'settings/diagnostics', element: <SyncDiagnostics /> },
     ],
   },
 ]);

@@ -250,6 +250,9 @@ async function runSync(): Promise<SyncResult> {
 
     // ── 5. Desar estat ───────────────────────────────────────────────────────
     meta.lastSyncedAt = nowISO();
+    // Sync correcte: neteja qualsevol error previ perquè el diagnòstic no mostri rastres vells.
+    delete meta.lastSyncError;
+    delete meta.lastSyncErrorAt;
     await putMeta(meta);
 
     return {
@@ -262,6 +265,39 @@ async function runSync(): Promise<SyncResult> {
   } catch (error) {
     // Log temporal per diagnosticar errors de sync (mira la consola del navegador).
     console.error('[sync] error:', error);
+    // Persisteix l'error perquè es pugui llegir des de la pantalla de diagnòstic dins
+    // l'app (al mòbil no hi ha consola). Best-effort: si això també falla, no l'amaguem.
+    try {
+      const meta = await getMeta();
+      meta.lastSyncError = stringifySyncError(error);
+      meta.lastSyncErrorAt = nowISO();
+      await putMeta(meta);
+    } catch (persistError) {
+      console.error('[sync] no s\'ha pogut desar l\'error de sync:', persistError);
+    }
     return { ok: false, reason: 'error', error };
   }
+}
+
+/**
+ * Converteix un error de sync (sovint un PostgrestError de Supabase o un Error normal)
+ * en un text llegible amb tots els camps útils per diagnosticar (message, code, details,
+ * hint). Es desa a meta.lastSyncError per mostrar-lo a la pantalla de diagnòstic.
+ */
+function stringifySyncError(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>;
+    const parts: string[] = [];
+    if (e.message) parts.push(String(e.message));
+    if (e.code) parts.push(`code=${String(e.code)}`);
+    if (e.details) parts.push(`details=${String(e.details)}`);
+    if (e.hint) parts.push(`hint=${String(e.hint)}`);
+    if (parts.length > 0) return parts.join(' | ');
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
 }

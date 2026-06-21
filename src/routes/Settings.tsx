@@ -201,6 +201,9 @@ export function Settings() {
         <Button variant="secondary" onClick={() => void syncNow()}>
           {t.settings.syncNow}
         </Button>
+        <Button variant="secondary" onClick={() => navigate('/settings/diagnostics')}>
+          {t.settings.syncDiagnostics}
+        </Button>
       </Card>
 
       <Card className="flex flex-col gap-2">

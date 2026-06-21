@@ -41,6 +41,8 @@ export interface SyncMeta {
   lastSyncedAt?: string;
   deviceId: string;
   localSeq: number; // comptador monòton per dispositiu
+  lastSyncError?: string; // últim error de sync capturat (per al diagnòstic dins l'app)
+  lastSyncErrorAt?: string; // quan es va capturar l'últim error
 }
 
 /**
