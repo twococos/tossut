@@ -18,6 +18,7 @@ import type {
   WaterTank,
   DocCategory,
   DocVersionData,
+  GuideSection,
 } from './entities';
 
 export type EventType =
@@ -57,7 +58,10 @@ export type EventType =
   | 'document_comment_delete' // ocultar un comentari (queda a l'historial)
   | 'document_delete' // eliminar el document (surt de la llista; queda a l'historial)
   | 'document_restore' // reinstaurar un document eliminat (torna a la llista)
-  | 'document_barrier'; // reset de l'historial de documents (anàleg a fault_barrier)
+  | 'document_barrier' // reset de l'historial de documents (anàleg a fault_barrier)
+  // ── guia del vaixell ──
+  | 'guide_upsert' // crear/editar una secció de la guia (snapshot complet)
+  | 'guide_delete'; // eliminar una secció de la guia (tombstone)
 
 /** Sobre comú a TOTS els esdeveniments (fila append-only del log). */
 export interface EventBase {
@@ -370,6 +374,24 @@ export interface DocumentBarrierEvent extends EventBase {
   cut: OrderKey; // s'ignoren els document_* amb clau < cut (tot el passat)
 }
 
+// ── guia del vaixell ───────────────────────────────────────────────────────────
+// Una secció de la guia es DERIVA del log com les definicions (last-writer-wins). El
+// snapshot complet viatja a cada `guide_upsert`; `guide_delete` és el tombstone. No hi ha
+// versions ni barrera de reset (les seccions no tenen historial acumulatiu). Veure
+// src/domain/guide/.
+
+/** Crear o editar una secció de la guia (snapshot complet com a "delta"). */
+export interface GuideUpsertEvent extends EventBase {
+  type: 'guide_upsert';
+  payload: GuideSection;
+}
+
+/** Eliminar una secció de la guia (tombstone; porta només l'id objectiu). */
+export interface GuideDeleteEvent extends EventBase {
+  type: 'guide_delete';
+  sectionId: ID;
+}
+
 // ── unió discriminada ────────────────────────────────────────────────────────
 export type AppEvent =
   | StockDeltaEvent
@@ -404,4 +426,6 @@ export type AppEvent =
   | DocumentCommentDeleteEvent
   | DocumentDeleteEvent
   | DocumentRestoreEvent
-  | DocumentBarrierEvent;
+  | DocumentBarrierEvent
+  | GuideUpsertEvent
+  | GuideDeleteEvent;

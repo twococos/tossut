@@ -213,3 +213,39 @@ export interface DocVersionData {
   physicalLocation?: string; // on és l'original físic
   filePath?: string; // ruta a Storage del fitxer digital (opcional)
 }
+
+// ── guia del vaixell ───────────────────────────────────────────────────────────
+// La guia de la tripulació (manual de consulta ràpida) és editable des de l'app quan el
+// mode edició està desbloquejat. Cada secció és un snapshot autònom (sense versions ni
+// historial): es DERIVA del log com les definicions, amb `guide_upsert`/`guide_delete`
+// (last-writer-wins). Veure src/domain/guide/.
+
+/**
+ * Una peça de contingut dins d'una secció de la guia.
+ * - `heading`: subtítol dins la secció.
+ * - `paragraph`: text corregut.
+ * - `note`: avís/consell destacat (caixa groga).
+ * - `steps`: llista numerada (un ítem per pas).
+ * - `list`: llista amb pics.
+ * - `image`: `src` és una ruta de photoQueue ('guides/<id>/<uuid>.jpg') O una ruta
+ *   estàtica llegada de public/guide/ ('guide/x.jpg').
+ */
+export type GuideBlock =
+  | { kind: 'heading'; text: string }
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'note'; text: string }
+  | { kind: 'steps'; items: string[] }
+  | { kind: 'list'; items: string[] }
+  | { kind: 'image'; src: string; caption?: string };
+
+/** Un tema de la guia. Es deriva del log; `order` en fixa la posició a l'índex. */
+export interface GuideSection {
+  id: ID;
+  title: string;
+  icon?: string; // clau Iconify (com ItemObject.icon; p.ex. 'tabler:anchor'); buit = reserva
+  blocks: GuideBlock[];
+  order: number; // posició a l'índex (ordre: order, després createdAt, després id)
+  createdAt: ISOTimestamp;
+  updatedAt: ISOTimestamp;
+  deleted?: boolean; // tombstone; fora de la llista visible
+}

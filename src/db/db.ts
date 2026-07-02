@@ -10,6 +10,7 @@ import type {
   ResourceState,
 } from '@/types/entities';
 import type { AppEvent } from '@/types/events';
+import type { GuideSection } from '@/types/entities';
 import type { DerivedFault } from '@/domain/faults/deriveFaults';
 import type { DerivedShoppingItem } from '@/domain/shopping/deriveShoppingList';
 import type { DerivedDocument } from '@/domain/documents/deriveDocuments';
@@ -27,7 +28,7 @@ export type LocalEvent = AppEvent & {
 export interface PendingPhoto {
   id: string;
   blob: Blob;
-  targetType: 'object' | 'location' | 'app' | 'fault' | 'document';
+  targetType: 'object' | 'location' | 'app' | 'fault' | 'document' | 'guide';
   targetId: string;
   createdAt: string;
   mime?: string; // contentType real per pujar (per defecte image/jpeg)
@@ -66,6 +67,7 @@ export class BoatDB extends Dexie {
   faults!: Table<DerivedFault, string>; // CAU derivada (avaries)
   shoppingItems!: Table<DerivedShoppingItem, string>; // CAU derivada (llista de la compra)
   documents!: Table<DerivedDocument, string>; // CAU derivada (documentació tècnica)
+  guideSections!: Table<GuideSection, string>; // CAU derivada (guia del vaixell)
   pendingPhotos!: Table<PendingPhoto, string>;
   meta!: Table<SyncMeta, string>;
 
@@ -104,6 +106,11 @@ export class BoatDB extends Dexie {
     // recompute, només cal declarar el store nou).
     this.version(5).stores({
       documents: 'id, category, deleted',
+    });
+    // v6: cau derivada de la guia del vaixell (projecció del log; es regenera a cada
+    // recompute, només cal declarar el store nou). Ordre a la vista per l'índex `order`.
+    this.version(6).stores({
+      guideSections: 'id, order, deleted',
     });
   }
 }

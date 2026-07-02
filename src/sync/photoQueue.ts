@@ -20,7 +20,7 @@ const BUCKET = 'boat-photos';
  */
 export async function enqueuePhoto(
   blob: Blob,
-  targetType: 'object' | 'location' | 'app' | 'fault' | 'document',
+  targetType: 'object' | 'location' | 'app' | 'fault' | 'document' | 'guide',
   targetId: string,
   opts?: { mime?: string; ext?: string },
 ): Promise<string> {

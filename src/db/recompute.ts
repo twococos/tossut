@@ -7,6 +7,7 @@ import { deriveResources } from '@/domain/resources/deriveResources';
 import { deriveFaults } from '@/domain/faults/deriveFaults';
 import { deriveShoppingList } from '@/domain/shopping/deriveShoppingList';
 import { deriveDocuments } from '@/domain/documents/deriveDocuments';
+import { deriveGuide } from '@/domain/guide/deriveGuide';
 
 /**
  * Recalcula tot l'estat derivat a partir del log d'esdeveniments i el desa a les caus
@@ -48,6 +49,9 @@ export async function recomputeAll(): Promise<void> {
   // 7) Derivar la documentació tècnica (versions + comentaris) dels events document_*.
   const documents = deriveDocuments(events);
 
+  // 8) Derivar la guia del vaixell (seccions editables) dels events guide_*.
+  const guideSections = deriveGuide(events);
+
   await db.transaction(
     'rw',
     [
@@ -61,6 +65,7 @@ export async function recomputeAll(): Promise<void> {
       db.faults,
       db.shoppingItems,
       db.documents,
+      db.guideSections,
     ],
     async () => {
       // Reemplaçar completament les caus (recompute-from-scratch).
@@ -75,6 +80,7 @@ export async function recomputeAll(): Promise<void> {
         db.faults.clear(),
         db.shoppingItems.clear(),
         db.documents.clear(),
+        db.guideSections.clear(),
       ]);
 
       await Promise.all([
@@ -88,6 +94,7 @@ export async function recomputeAll(): Promise<void> {
         db.faults.bulkPut([...faults.values()]),
         db.shoppingItems.bulkPut([...shopping.values()]),
         db.documents.bulkPut([...documents.values()]),
+        db.guideSections.bulkPut(guideSections),
       ]);
     },
   );

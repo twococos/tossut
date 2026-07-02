@@ -8,6 +8,7 @@ import type {
   ID,
   DocCategory,
   DocVersionData,
+  GuideSection,
 } from '@/types/entities';
 import type {
   AppEvent,
@@ -50,6 +51,8 @@ import {
   makeDocumentDeleteEvent,
   makeDocumentRestoreEvent,
   makeDocumentBarrierEvent,
+  makeGuideUpsertEvent,
+  makeGuideDeleteEvent,
   type EventContext,
 } from '@/domain/events/factories';
 import {
@@ -165,6 +168,25 @@ export async function commitChecklistUpsert(
 ): Promise<void> {
   const ctx = await buildContext(userName);
   await commit(makeChecklistUpsertEvent(ctx, payload));
+}
+
+// ── guia del vaixell ─────────────────────────────────────────────────────────
+/** Crear o editar una secció de la guia (snapshot complet; last-writer-wins). */
+export async function commitGuideUpsert(
+  userName: string,
+  payload: GuideSection,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeGuideUpsertEvent(ctx, payload));
+}
+
+/** Eliminar una secció de la guia (tombstone). */
+export async function commitGuideDelete(
+  userName: string,
+  sectionId: ID,
+): Promise<void> {
+  const ctx = await buildContext(userName);
+  await commit(makeGuideDeleteEvent(ctx, sectionId));
 }
 
 // ── deletes de definició ─────────────────────────────────────────────────────

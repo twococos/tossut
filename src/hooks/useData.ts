@@ -102,3 +102,8 @@ export const useShoppingItems = () =>
 // ── documentació tècnica ───────────────────────────────────────────────────────
 /** Tots els documents derivats (actius i eliminats), reactiu. */
 export const useDocuments = () => useLiveQuery(() => db.documents.toArray(), [], []);
+
+// ── guia del vaixell ───────────────────────────────────────────────────────────
+/** Totes les seccions de la guia, ordenades per l'índex (`order`), reactiu. */
+export const useGuideSections = () =>
+  useLiveQuery(() => db.guideSections.orderBy('order').toArray(), [], []);

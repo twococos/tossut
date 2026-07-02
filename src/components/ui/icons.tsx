@@ -61,6 +61,8 @@ import {
   Bed,
   Toilet,
   Sun,
+  ChevronUp,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
 import type { StockDeltaReason } from '@/types/events';
@@ -122,6 +124,8 @@ export {
   Bed,
   Toilet,
   Sun,
+  ChevronUp,
+  ChevronDown,
 };
 export type { LucideIcon };
 

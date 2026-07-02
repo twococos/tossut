@@ -8,6 +8,7 @@ import type {
   ID,
   DocCategory,
   DocVersionData,
+  GuideSection,
 } from '@/types/entities';
 import type {
   StockDeltaEvent,
@@ -48,6 +49,8 @@ import type {
   DocumentDeleteEvent,
   DocumentRestoreEvent,
   DocumentBarrierEvent,
+  GuideUpsertEvent,
+  GuideDeleteEvent,
 } from '@/types/events';
 import { newId } from '@/lib/id';
 import { nowISO } from '@/lib/time';
@@ -389,4 +392,19 @@ export function makeDocumentBarrierEvent(
   cut: OrderKey,
 ): DocumentBarrierEvent {
   return { ...base(ctx), type: 'document_barrier', cut };
+}
+
+// ── guia del vaixell ───────────────────────────────────────────────────────────
+export function makeGuideUpsertEvent(
+  ctx: EventContext,
+  payload: GuideSection,
+): GuideUpsertEvent {
+  return { ...base(ctx), type: 'guide_upsert', payload };
+}
+
+export function makeGuideDeleteEvent(
+  ctx: EventContext,
+  sectionId: ID,
+): GuideDeleteEvent {
+  return { ...base(ctx), type: 'guide_delete', sectionId };
 }
