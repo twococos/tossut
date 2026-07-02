@@ -17,6 +17,7 @@ const SHOW_DURATION_KEY = 'boat-stock-manager.showDurationSection';
 const SHOW_RESOURCES_KEY = 'boat-stock-manager.showResourcesSection';
 const SHOW_EXPIRING_KEY = 'boat-stock-manager.showExpiringSection';
 const DOC_EXPIRY_WARNING_KEY = 'boat-stock-manager.docExpiryWarningDays';
+const OBJECT_SORT_KEY = 'boat-stock-manager.objectSort';
 
 export function getUserName(): string | null {
   return localStorage.getItem(NAME_KEY);
@@ -124,4 +125,20 @@ export function getDocExpiryWarningDays(): number {
 export function setDocExpiryWarningDays(days: number): void {
   localStorage.setItem(DOC_EXPIRY_WARNING_KEY, String(Math.max(1, Math.round(days))));
   window.dispatchEvent(new CustomEvent('doc-expiry-warning-change'));
+}
+
+/**
+ * Criteri d'ordenació de la llista d'objectes (per dispositiu). Per defecte alfabètic.
+ * En canviar-lo es dispara `object-sort-change` perquè la llista hi reaccioni.
+ */
+export type ObjectSort = 'alpha' | 'category' | 'recent' | 'stock';
+
+export function getObjectSort(): ObjectSort {
+  const v = localStorage.getItem(OBJECT_SORT_KEY);
+  return v === 'category' || v === 'recent' || v === 'stock' ? v : 'alpha';
+}
+
+export function setObjectSort(sort: ObjectSort): void {
+  localStorage.setItem(OBJECT_SORT_KEY, sort);
+  window.dispatchEvent(new CustomEvent('object-sort-change'));
 }

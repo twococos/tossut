@@ -481,6 +481,13 @@ export const ca = {
     editObjectTitle: "Editar objecte",
     confirmDelete: (name: string) =>
       `Eliminar "${name}"? Es traurà també de les receptes on figuri com a ingredient.`,
+    sortLabel: "Ordenar per:",
+    sortOptions: {
+      alpha: "Ordre alfabètic",
+      category: "Categoria",
+      recent: "Últim afegit",
+      stock: "Estoc (més primer)",
+    },
   },
 
   /** Detall d'un objecte i etiquetes d'objecte reutilitzables. */
@@ -661,7 +668,8 @@ export const ca = {
     cook: "Cuinar",
     needsFire: "Cal foc",
     prepTimeLabel: (min: number) => `${min}′ de preparació`,
-    ingredientsPerPerson: "Ingredients (per persona)",
+    ingredientsForPeople: (n: number) => `Ingredients (per a ${n} persones)`,
+    editRecipe: "Editar recepta",
     deletedObject: "Objecte eliminat",
     steps: "Passos",
     cookTitle: (title: string) => `Cuinar ${title}`,
@@ -673,7 +681,8 @@ export const ca = {
       "Cal crear objectes abans de fer una recepta (un ingredient ha d'existir primer).",
     close: "Tancar",
     titlePlaceholder: "Títol",
-    ingredientsPerPerson: "Ingredients (per persona)",
+    ingredientsForPeoplePrefix: "Ingredients per a",
+    ingredientsForPeopleSuffix: "persones",
     removeIngredientAria: "Treure ingredient",
     addIngredient: "+ Afegir ingredient",
     searchIngredientPlaceholder: "Cercar ingredient…",
@@ -695,6 +704,7 @@ export const ca = {
     newChecklistTitle: "Nova checklist",
     editChecklistTitle: "Editar checklist",
     resetProgress: "Reiniciar progrés",
+    icon: "Icona",
     titlePlaceholder: "Títol (p.ex. Sortir de cala)",
     stepsLabel: "Passos (un per línia)",
     stepsPlaceholder: "Aixecar àncora\nRecollir defenses\nEngegar motor",

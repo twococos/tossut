@@ -5,6 +5,8 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/common';
 import { CheckSquare, Square, Pencil } from '@/components/ui/icons';
+import { IconPicker } from '@/components/ui/IconPicker';
+import { ObjectIcon } from '@/components/ui/ObjectIcon';
 import { ConfirmDelete } from '@/components/ui/ConfirmDelete';
 import { useChecklists } from '@/hooks/useData';
 import { db } from '@/db/db';
@@ -44,7 +46,12 @@ export function Checklists() {
                 onClick={() => setOpen(c)}
                 className="flex flex-1 items-center justify-between active:scale-[0.98]"
               >
-                <span className="font-semibold">{c.title}</span>
+                <span className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center">
+                    <ObjectIcon icon={c.icon} size={24} />
+                  </span>
+                  <span className="font-semibold">{c.title}</span>
+                </span>
                 <span className="text-xs text-boat-500">{t.checklists.stepsCount(c.items.length)}</span>
               </button>
               {!editLocked && (
@@ -137,6 +144,7 @@ function ChecklistEditor({
 }) {
   const { userName } = useAuth();
   const [title, setTitle] = useState(initial?.title ?? '');
+  const [icon, setIcon] = useState(initial?.icon ?? '');
   const [itemsText, setItemsText] = useState(
     (initial?.items ?? []).map((i) => i.label).join('\n'),
   );
@@ -147,6 +155,7 @@ function ChecklistEditor({
     const template: ChecklistTemplate = {
       id: initial?.id ?? newId(),
       title: title.trim(),
+      icon: icon.trim() || undefined,
       items: itemsText
         .split('\n')
         .map((s) => s.trim())
@@ -169,6 +178,8 @@ function ChecklistEditor({
   return (
     <div className="flex flex-col gap-3">
       <input className={field} placeholder={t.checklists.titlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
+      <label className="text-sm font-medium text-boat-700">{t.checklists.icon}</label>
+      <IconPicker value={icon} onChange={setIcon} />
       <label className="text-sm font-medium text-boat-700">{t.checklists.stepsLabel}</label>
       <textarea
         className={field}

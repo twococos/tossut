@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import type { ItemObject, Recipe } from '@/types/entities';
 import { Sheet } from '@/components/ui/Sheet';
-import { ChefHat, Flame } from '@/components/ui/icons';
+import { Button } from '@/components/ui/Button';
+import { ChefHat, Flame, Pencil } from '@/components/ui/icons';
 import { ObjectIcon } from '@/components/ui/ObjectIcon';
 import { useObjectsMap } from '@/hooks/useData';
+import { getDefaultDiners } from '@/auth/session';
+import { formatRecipeQuantity } from '@/lib/format';
 import { CookRecipePanel } from '@/features/cook/CookRecipePanel';
 import { ObjectDetail } from '@/features/objects/ObjectDetail';
 import { t } from '@/text';
@@ -16,11 +19,15 @@ import { t } from '@/text';
 export function RecipeDetail({
   recipe,
   onCooked,
+  onEdit,
 }: {
   recipe: Recipe;
   onCooked?: () => void;
+  /** Si es passa, mostra un botó "Editar recepta" al final (mode edició desbloquejat). */
+  onEdit?: () => void;
 }) {
   const objectsMap = useObjectsMap();
+  const diners = getDefaultDiners();
   const [cooking, setCooking] = useState(false);
   const [ingredientObj, setIngredientObj] = useState<ItemObject | null>(null);
 
@@ -46,10 +53,11 @@ export function RecipeDetail({
       </div>
 
       <div>
-        <h3 className="mb-1 text-sm font-semibold text-boat-700">{t.recipeDetail.ingredientsPerPerson}</h3>
+        <h3 className="mb-1 text-sm font-semibold text-boat-700">{t.recipeDetail.ingredientsForPeople(diners)}</h3>
         <ul className="flex flex-col gap-1 text-sm">
           {recipe.ingredients.map((ing) => {
             const obj = objectsMap.get(ing.objectId);
+            const total = ing.quantityPerPerson * diners;
             const content = (
               <>
                 <span className="flex items-center gap-2">
@@ -58,7 +66,9 @@ export function RecipeDetail({
                   </span>
                   <span>{obj?.name ?? t.recipeDetail.deletedObject}</span>
                 </span>
-                <span className="text-boat-500">{ing.quantityPerPerson}</span>
+                <span className="text-boat-500">
+                  {formatRecipeQuantity(total, obj?.quantityType ?? 'units')}
+                </span>
               </>
             );
             return (
@@ -88,6 +98,14 @@ export function RecipeDetail({
             ))}
           </ol>
         </div>
+      )}
+
+      {onEdit && (
+        <Button variant="secondary" onClick={onEdit}>
+          <span className="flex items-center justify-center gap-2">
+            <Pencil size={16} /> {t.recipeDetail.editRecipe}
+          </span>
+        </Button>
       )}
 
       <Sheet open={cooking} onClose={() => setCooking(false)} title={t.recipeDetail.cookTitle(recipe.title)}>

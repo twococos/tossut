@@ -19,7 +19,7 @@ import {
   commitShoppingClear,
 } from '@/db/commands';
 import { useAuth } from '@/auth/AuthProvider';
-import { formatQuantity } from '@/lib/format';
+import { formatQuantity, normalizeText } from '@/lib/format';
 import { t } from '@/text';
 
 /**
@@ -44,7 +44,7 @@ export function ShoppingList() {
   const filtered = useMemo(
     () =>
       query.trim()
-        ? objects.filter((o) => o.name.toLowerCase().includes(query.toLowerCase()))
+        ? objects.filter((o) => normalizeText(o.name).includes(normalizeText(query)))
         : [],
     [objects, query],
   );

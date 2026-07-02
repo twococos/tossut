@@ -51,7 +51,7 @@ export function Recipes() {
           {recipes.map((r) => (
             <li key={r.id}>
               <button
-                onClick={() => (editLocked ? setViewing(r) : setEditing(r))}
+                onClick={() => setViewing(r)}
                 className="flex h-full w-full items-center justify-between rounded-2xl bg-white p-3 shadow-sm active:scale-[0.98]"
               >
                 <span className="font-semibold">{r.title}</span>
@@ -83,7 +83,20 @@ export function Recipes() {
         )}
       </Sheet>
       <Sheet open={!!viewing} onClose={() => setViewing(null)}>
-        {viewing && <RecipeDetail recipe={viewing} onCooked={() => setViewing(null)} />}
+        {viewing && (
+          <RecipeDetail
+            recipe={viewing}
+            onCooked={() => setViewing(null)}
+            onEdit={
+              editLocked
+                ? undefined
+                : () => {
+                    setEditing(viewing);
+                    setViewing(null);
+                  }
+            }
+          />
+        )}
       </Sheet>
     </div>
   );

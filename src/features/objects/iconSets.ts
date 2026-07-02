@@ -17,9 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { addCollection } from '@iconify/react/offline';
 import type { IconifyJSON } from '@iconify/react';
-
-/** Treu diacrítics combinants (rang ̀–ͯ) per cercar sense accents. */
-const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+import { normalizeText as norm } from '@/lib/format';
 
 /** Una entrada del catàleg navegable. */
 export interface IconEntry {

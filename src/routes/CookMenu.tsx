@@ -7,6 +7,7 @@ import { CookRecipe } from '@/features/cook/CookRecipe';
 import { QuickConsume } from '@/features/cook/QuickConsume';
 import { useObjects } from '@/hooks/useData';
 import { COOK_CATEGORIES, filterByCategories } from '@/features/cook/foodFilters';
+import { normalizeText } from '@/lib/format';
 import { t } from '@/text';
 
 type Mode = 'menu' | 'recipe' | 'drink' | 'snacks' | 'dessert' | 'breakfast' | 'all';
@@ -70,8 +71,7 @@ function AllObjectsConsume({
 }) {
   const [query, setQuery] = useState('');
   const filtered = useMemo(
-    () =>
-      objects.filter((o) => o.name.toLowerCase().includes(query.toLowerCase())),
+    () => objects.filter((o) => normalizeText(o.name).includes(normalizeText(query))),
     [objects, query],
   );
   return (

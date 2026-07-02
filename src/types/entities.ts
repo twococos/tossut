@@ -106,6 +106,7 @@ export interface ChecklistItem {
 export interface ChecklistTemplate {
   id: ID;
   title: string;
+  icon?: string; // clau Iconify (mateix selector que els objectes)
   items: ChecklistItem[];
   createdAt: ISOTimestamp;
   updatedAt: ISOTimestamp;

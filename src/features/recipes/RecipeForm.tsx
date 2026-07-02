@@ -6,6 +6,8 @@ import { ObjectIcon } from '@/components/ui/ObjectIcon';
 import { ObjectForm } from '@/features/objects/ObjectForm';
 import { X, Flame } from '@/components/ui/icons';
 import { useObjects, useObjectsMap } from '@/hooks/useData';
+import { getDefaultDiners } from '@/auth/session';
+import { normalizeText } from '@/lib/format';
 import { newId } from '@/lib/id';
 import { nowISO } from '@/lib/time';
 import { t } from '@/text';
@@ -26,6 +28,10 @@ export function RecipeForm({
   const objects = useObjects() ?? [];
   const objectsMap = useObjectsMap();
   const [title, setTitle] = useState(initial?.title ?? '');
+  // Nombre de persones per a les quals s'introdueixen les quantitats. Per defecte, els
+  // comensals d'Ajustos. L'estat dels ingredients es guarda SEMPRE per persona; els inputs
+  // mostren `quantityPerPerson * servings` i, en editar, desen el valor dividit per `servings`.
+  const [servings, setServings] = useState(getDefaultDiners());
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>(
     initial?.ingredients ?? [],
   );
@@ -46,7 +52,7 @@ export function RecipeForm({
     () =>
       objects.filter(
         (o) =>
-          !usedIds.has(o.id) && o.name.toLowerCase().includes(query.toLowerCase()),
+          !usedIds.has(o.id) && normalizeText(o.name).includes(normalizeText(query)),
       ),
     [objects, usedIds, query],
   );
@@ -96,36 +102,55 @@ export function RecipeForm({
     <div className="flex flex-col gap-3">
       <input className={field} placeholder={t.recipeForm.titlePlaceholder} value={title} onChange={(e) => setTitle(e.target.value)} />
 
-      <label className="text-sm font-medium text-boat-700">{t.recipeForm.ingredientsPerPerson}</label>
-      {ingredients.map((ing, idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          <span className="flex flex-1 items-center gap-2 rounded-xl border border-boat-100 px-3 py-2">
-            <ObjectIcon icon={objectsMap.get(ing.objectId)?.icon} size={20} />
-            <span className="truncate">{objectsMap.get(ing.objectId)?.name ?? ''}</span>
-          </span>
-          <input
-            type="number"
-            step="0.01"
-            className="w-20 rounded-xl border border-boat-100 px-2 py-2"
-            value={ing.quantityPerPerson}
-            onChange={(e) =>
-              setIngredients((p) =>
-                p.map((x, i) =>
-                  i === idx ? { ...x, quantityPerPerson: parseFloat(e.target.value) || 0 } : x,
-                ),
-              )
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setIngredients((p) => p.filter((_, i) => i !== idx))}
-            aria-label={t.recipeForm.removeIngredientAria}
-            className="text-red-500"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      ))}
+      <label className="flex items-center gap-2 text-sm font-medium text-boat-700">
+        <span>{t.recipeForm.ingredientsForPeoplePrefix}</span>
+        <input
+          type="number"
+          min={1}
+          className="w-16 rounded-xl border border-boat-100 px-2 py-2 text-center"
+          value={servings}
+          onChange={(e) => setServings(Math.max(1, parseInt(e.target.value, 10) || 1))}
+        />
+        <span>{t.recipeForm.ingredientsForPeopleSuffix}</span>
+      </label>
+      {ingredients.map((ing, idx) => {
+        const obj = objectsMap.get(ing.objectId);
+        // El pes va en grams a receptes (kg → g); el desat segueix sent per persona en kg.
+        const isWeight = obj?.quantityType === 'kg';
+        const factor = isWeight ? 1000 : 1;
+        const unit = isWeight ? 'g' : obj?.quantityType === 'L' ? 'L' : '';
+        const shown = Math.round(ing.quantityPerPerson * servings * factor * 1000) / 1000;
+        return (
+          <div key={idx} className="flex items-center gap-2">
+            <span className="flex flex-1 items-center gap-2 rounded-xl border border-boat-100 px-3 py-2">
+              <ObjectIcon icon={obj?.icon} size={20} />
+              <span className="truncate">{obj?.name ?? ''}</span>
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              className="w-20 rounded-xl border border-boat-100 px-2 py-2"
+              value={shown}
+              onChange={(e) => {
+                const entered = parseFloat(e.target.value) || 0;
+                const perPerson = entered / factor / servings;
+                setIngredients((p) =>
+                  p.map((x, i) => (i === idx ? { ...x, quantityPerPerson: perPerson } : x)),
+                );
+              }}
+            />
+            {unit && <span className="w-4 text-sm text-boat-500">{unit}</span>}
+            <button
+              type="button"
+              onClick={() => setIngredients((p) => p.filter((_, i) => i !== idx))}
+              aria-label={t.recipeForm.removeIngredientAria}
+              className="text-red-500"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        );
+      })}
       <button type="button" onClick={openPicker} className="self-start text-sm text-boat-600">
         {t.recipeForm.addIngredient}
       </button>
