@@ -39,13 +39,16 @@ export function FaultCard({
   const [editOpen, setEditOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
 
+  // `fault.tags` pot ser undefined en files derivades d'una versió anterior encara a la cau.
+  const tags = fault.tags ?? [];
+
   /** Afegeix o treu una etiqueta de la llista actual i emet la llista sencera resultant. */
   function toggleTag(tag: string) {
     const key = normalizeText(tag);
-    const has = fault.tags.some((existing) => normalizeText(existing) === key);
+    const has = tags.some((existing) => normalizeText(existing) === key);
     const next = has
-      ? fault.tags.filter((existing) => normalizeText(existing) !== key)
-      : [...fault.tags, tag];
+      ? tags.filter((existing) => normalizeText(existing) !== key)
+      : [...tags, tag];
     onSetTags(next);
   }
 
@@ -84,7 +87,7 @@ export function FaultCard({
 
             {/* Etiquetes: chips amb X per treure + botó "+" per obrir el selector. */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {fault.tags.map((tag) => (
+              {tags.map((tag) => (
                 <span
                   key={tag}
                   className="inline-flex items-center gap-1 rounded-full bg-boat-100 px-2 py-0.5 text-xs text-boat-800"
@@ -186,10 +189,10 @@ export function FaultCard({
       <TagPickerSheet
         open={tagsOpen}
         onClose={() => setTagsOpen(false)}
-        selected={fault.tags}
+        selected={tags}
         allTags={allTags}
         onToggle={toggleTag}
-        onCreate={(tag) => onSetTags([...fault.tags, tag])}
+        onCreate={(tag) => onSetTags([...tags, tag])}
       />
     </div>
   );

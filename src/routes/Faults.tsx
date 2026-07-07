@@ -70,7 +70,7 @@ export function Faults() {
           f.title,
           f.description,
           t.faults.severity[f.severity] ?? '',
-          ...f.tags,
+          ...(f.tags ?? []),
         ]
           .map((s) => normalizeText(s))
           .join(' ');
@@ -87,7 +87,7 @@ export function Faults() {
     if (filterTags.size > 0) {
       const wanted = [...filterTags].map((tg) => normalizeText(tg));
       rows = rows.filter((f) => {
-        const own = new Set(f.tags.map((tg) => normalizeText(tg)));
+        const own = new Set((f.tags ?? []).map((tg) => normalizeText(tg)));
         return wanted.every((w) => own.has(w));
       });
     }

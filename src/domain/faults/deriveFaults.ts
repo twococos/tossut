@@ -192,7 +192,8 @@ export function activeFaults(faults: ReadonlyMap<ID, DerivedFault>): DerivedFaul
  */
 export function allTags(faults: ReadonlyMap<ID, DerivedFault>): string[] {
   const set = new Set<string>();
-  for (const f of faults.values()) for (const tag of f.tags) set.add(tag);
+  // `f.tags` pot ser undefined en files derivades d'una versió anterior encara a la cau.
+  for (const f of faults.values()) for (const tag of f.tags ?? []) set.add(tag);
   return [...set].sort((a, b) => a.localeCompare(b, 'ca'));
 }
 
