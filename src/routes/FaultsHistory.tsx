@@ -30,6 +30,8 @@ import { t } from '@/text';
 const TIMELINE_TYPES = new Set([
   'fault_report',
   'fault_update',
+  'fault_edit',
+  'fault_tags',
   'fault_resolve',
   'fault_reopen',
 ]);

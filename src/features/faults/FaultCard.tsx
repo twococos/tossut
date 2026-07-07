@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { ConfirmAction } from '@/components/ui/ConfirmAction';
-import { Plus, CheckCircle } from '@/components/ui/icons';
+import { Plus, CheckCircle, Pencil, X, Tag } from '@/components/ui/icons';
 import { AddUpdateSheet } from './AddUpdateSheet';
 import { FaultUpdatePhoto } from './FaultUpdatePhoto';
+import { ReportFaultSheet, type FaultFormValue } from './ReportFaultSheet';
+import { TagPickerSheet } from './TagPickerSheet';
 import type { DerivedFault } from '@/domain/faults/deriveFaults';
 import { SEVERITY_BAND } from '@/domain/faults/deriveFaults';
+import { normalizeText } from '@/lib/format';
 import { relativeFromNow } from '@/lib/time';
 import { t } from '@/text';
 
 /**
  * Targeta d'una avaria activa. Plegada: banda de color + títol. Desplegada (en tocar-la):
- * descripció + actualitzacions + botons d'afegir actualització i solucionar.
+ * botó d'editar + descripció + etiquetes + actualitzacions + botons d'afegir actualització i
+ * solucionar.
  */
 export function FaultCard({
   fault,
@@ -18,14 +22,32 @@ export function FaultCard({
   onToggle,
   onAddUpdate,
   onResolve,
+  onEdit,
+  onSetTags,
+  allTags,
 }: {
   fault: DerivedFault;
   expanded: boolean;
   onToggle: () => void;
   onAddUpdate: (payload: { text?: string; photoPath?: string }) => void;
   onResolve: () => void;
+  onEdit: (data: FaultFormValue) => void;
+  onSetTags: (tags: string[]) => void;
+  allTags: string[];
 }) {
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
+
+  /** Afegeix o treu una etiqueta de la llista actual i emet la llista sencera resultant. */
+  function toggleTag(tag: string) {
+    const key = normalizeText(tag);
+    const has = fault.tags.some((existing) => normalizeText(existing) === key);
+    const next = has
+      ? fault.tags.filter((existing) => normalizeText(existing) !== key)
+      : [...fault.tags, tag];
+    onSetTags(next);
+  }
 
   return (
     <div className="flex overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -46,9 +68,47 @@ export function FaultCard({
 
         {expanded && (
           <div className="mt-3 flex flex-col gap-3">
+            {/* Editar les metadades de l'avaria. */}
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="flex items-center gap-1.5 self-end text-sm font-medium text-boat-600 active:scale-95"
+            >
+              <Pencil size={16} />
+              {t.faults.edit}
+            </button>
+
             {fault.description && (
               <p className="whitespace-pre-wrap text-sm text-boat-700">{fault.description}</p>
             )}
+
+            {/* Etiquetes: chips amb X per treure + botó "+" per obrir el selector. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {fault.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full bg-boat-100 px-2 py-0.5 text-xs text-boat-800"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    aria-label={t.faults.removeTagAria(tag)}
+                    className="text-boat-500 active:scale-90"
+                  >
+                    <X size={13} />
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => setTagsOpen(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-boat-300 px-2 py-0.5 text-xs font-medium text-boat-600 active:scale-95"
+              >
+                <Tag size={13} />
+                {t.faults.addTag}
+              </button>
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-semibold uppercase tracking-wide text-boat-400">
@@ -107,6 +167,29 @@ export function FaultCard({
           onAddUpdate(payload);
           setUpdateOpen(false);
         }}
+      />
+
+      <ReportFaultSheet
+        open={editOpen}
+        initial={{
+          title: fault.title,
+          description: fault.description,
+          severity: fault.severity,
+        }}
+        onClose={() => setEditOpen(false)}
+        onSubmit={(data) => {
+          onEdit(data);
+          setEditOpen(false);
+        }}
+      />
+
+      <TagPickerSheet
+        open={tagsOpen}
+        onClose={() => setTagsOpen(false)}
+        selected={fault.tags}
+        allTags={allTags}
+        onToggle={toggleTag}
+        onCreate={(tag) => onSetTags([...fault.tags, tag])}
       />
     </div>
   );

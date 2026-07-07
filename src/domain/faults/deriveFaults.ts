@@ -35,10 +35,17 @@ export interface DerivedFault {
   resolvedAt?: ISOTimestamp;
   resolvedBy?: UserName;
   updates: FaultUpdate[]; // ordenats cronològicament
+  tags: string[]; // etiquetes actuals (pot ser buida)
+  lastActivityAt: ISOTimestamp; // occurredAt de l'últim event que ha tocat l'avaria (per ordenar)
+}
+
+/** Neteja una etiqueta: trim + col·lapsa espais interns. Retorna '' si queda buida. */
+export function normalizeTag(raw: string): string {
+  return raw.trim().replace(/\s+/g, ' ');
 }
 
 /** Pes d'ordenació per gravetat (més alt = més greu, a dalt de la llista). */
-const SEVERITY_WEIGHT: Record<FaultSeverity, number> = {
+export const SEVERITY_WEIGHT: Record<FaultSeverity, number> = {
   red: 3,
   orange: 2,
   yellow: 1,
@@ -94,6 +101,8 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
       barrier &&
       (ev.type === 'fault_report' ||
         ev.type === 'fault_update' ||
+        ev.type === 'fault_edit' ||
+        ev.type === 'fault_tags' ||
         ev.type === 'fault_resolve' ||
         ev.type === 'fault_reopen') &&
       compareKey(keyOf(ev), barrier.cut) < 0
@@ -111,6 +120,8 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
         reportedBy: ev.userName,
         resolved: false,
         updates: [],
+        tags: [],
+        lastActivityAt: ev.occurredAt,
       });
     } else if (ev.type === 'fault_update') {
       const f = faults.get(ev.faultId);
@@ -122,6 +133,21 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
           at: ev.occurredAt,
           by: ev.userName,
         });
+        f.lastActivityAt = ev.occurredAt;
+      }
+    } else if (ev.type === 'fault_edit') {
+      const f = faults.get(ev.faultId);
+      if (f) {
+        f.title = ev.title;
+        f.description = ev.description;
+        f.severity = ev.severity;
+        f.lastActivityAt = ev.occurredAt;
+      }
+    } else if (ev.type === 'fault_tags') {
+      const f = faults.get(ev.faultId);
+      if (f) {
+        f.tags = [...ev.tags];
+        f.lastActivityAt = ev.occurredAt;
       }
     } else if (ev.type === 'fault_resolve') {
       const f = faults.get(ev.faultId);
@@ -129,6 +155,7 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
         f.resolved = true;
         f.resolvedAt = ev.occurredAt;
         f.resolvedBy = ev.userName;
+        f.lastActivityAt = ev.occurredAt;
       }
     } else if (ev.type === 'fault_reopen') {
       const f = faults.get(ev.faultId);
@@ -136,6 +163,7 @@ export function deriveFaults(events: readonly AppEvent[]): Map<ID, DerivedFault>
         f.resolved = false;
         f.resolvedAt = undefined;
         f.resolvedBy = undefined;
+        f.lastActivityAt = ev.occurredAt;
       }
     }
   }
@@ -155,6 +183,17 @@ export function activeFaults(faults: ReadonlyMap<ID, DerivedFault>): DerivedFaul
       if (w !== 0) return w;
       return a.reportedAt < b.reportedAt ? 1 : a.reportedAt > b.reportedAt ? -1 : 0;
     });
+}
+
+/**
+ * Totes les etiquetes en ús (unió de les etiquetes de totes les avaries, actives i resoltes),
+ * deduplicades i ordenades alfabèticament (català). És el "catàleg" per al cercador d'etiquetes.
+ * Una etiqueta que ja no és a cap avaria simplement no hi apareix (neteja automàtica).
+ */
+export function allTags(faults: ReadonlyMap<ID, DerivedFault>): string[] {
+  const set = new Set<string>();
+  for (const f of faults.values()) for (const tag of f.tags) set.add(tag);
+  return [...set].sort((a, b) => a.localeCompare(b, 'ca'));
 }
 
 /** La gravetat més alta entre les avaries actives, o null si no n'hi ha cap. */

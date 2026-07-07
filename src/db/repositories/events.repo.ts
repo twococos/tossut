@@ -81,7 +81,8 @@ export async function purgeBeforeBarrier(
 
 /**
  * Neteja física després d'un reset d'avaries: esborra localment els events fault_*
- * (`fault_report`/`fault_update`/`fault_resolve`) anteriors al tall (clau < cut) i totes les
+ * (`fault_report`/`fault_update`/`fault_edit`/`fault_tags`/`fault_resolve`/`fault_reopen`)
+ * anteriors al tall (clau < cut) i totes les
  * `fault_barrier` EXCEPTE la d'id `keepBarrierId` (la barrera de reset nova, salvaguarda
  * determinista). Mirall de `purgeBeforeBarrier` per a l'estoc. Retorna quants n'ha tret.
  */
@@ -95,6 +96,8 @@ export async function purgeFaultsBeforeBarrier(
     if (
       r.type === 'fault_report' ||
       r.type === 'fault_update' ||
+      r.type === 'fault_edit' ||
+      r.type === 'fault_tags' ||
       r.type === 'fault_resolve' ||
       r.type === 'fault_reopen'
     ) {

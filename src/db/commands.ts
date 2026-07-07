@@ -36,6 +36,8 @@ import {
   makeGasSwapEvent,
   makeFaultReportEvent,
   makeFaultUpdateEvent,
+  makeFaultEditEvent,
+  makeFaultTagsEvent,
   makeFaultResolveEvent,
   makeFaultReopenEvent,
   makeFaultBarrierEvent,
@@ -70,6 +72,8 @@ import {
   requestServerDocumentReset,
 } from '@/sync/syncEngine';
 import { nowISO } from '@/lib/time';
+import { normalizeText } from '@/lib/format';
+import { normalizeTag } from '@/domain/faults/deriveFaults';
 
 /**
  * Capa de comandes: porta ÚNICA d'escriptura per a la UI.
@@ -299,6 +303,48 @@ export async function commitFaultUpdate(
   if (!text === !photoPath) return;
   const ctx = await buildContext(userName);
   await commit(makeFaultUpdateEvent(ctx, faultId, { text, photoPath }));
+}
+
+/** Edita les metadades d'una avaria (títol/descripció/gravetat). No fa res si el títol és buit. */
+export async function commitFaultEdit(
+  userName: string,
+  faultId: ID,
+  data: { title: string; description: string; severity: FaultSeverity },
+): Promise<void> {
+  const title = data.title.trim();
+  if (!title) return;
+  const ctx = await buildContext(userName);
+  await commit(
+    makeFaultEditEvent(ctx, faultId, {
+      title,
+      description: data.description.trim(),
+      severity: data.severity,
+    }),
+  );
+}
+
+/**
+ * Substitueix la llista d'etiquetes d'una avaria. Normalitza (trim/espais), deduplica
+ * (case/accent-insensitive, conservant la primera forma escrita) i emet la llista sencera.
+ * Una etiqueta que quedi fora de tota avaria desapareix sola del catàleg derivat.
+ */
+export async function commitFaultTags(
+  userName: string,
+  faultId: ID,
+  tags: string[],
+): Promise<void> {
+  const seen = new Set<string>();
+  const clean: string[] = [];
+  for (const raw of tags) {
+    const norm = normalizeTag(raw);
+    if (!norm) continue;
+    const key = normalizeText(norm); // dedup insensible a majúscules/accents
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(norm);
+  }
+  const ctx = await buildContext(userName);
+  await commit(makeFaultTagsEvent(ctx, faultId, clean));
 }
 
 /** Soluciona una avaria (surt de la llista d'actives). */

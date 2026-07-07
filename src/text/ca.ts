@@ -238,6 +238,34 @@ export const ca = {
     updateBy: (who: string) => `per ${who}`,
     viewHistory: "Historial d'avaries",
     saveUpdate: "Desar",
+    // — edició —
+    editTitle: "Editar avaria",
+    edit: "Editar",
+    saveEdit: "Desar canvis",
+    // — etiquetes —
+    tags: "Etiquetes",
+    addTag: "Afegir etiqueta",
+    tagPickerTitle: "Etiquetes",
+    searchTagPlaceholder: "Cercar o crear etiqueta…",
+    createTag: (name: string) => `Afegir «${name}»`,
+    removeTagAria: (name: string) => `Treure l'etiqueta ${name}`,
+    noTags: "Sense etiquetes",
+    // — cerca / filtres / ordenació —
+    searchPlaceholder: "Cercar avaries…",
+    noResults: "Cap avaria coincideix.",
+    filters: "Filtres",
+    filterBySeverity: "Gravetat",
+    filterByTags: "Etiquetes",
+    filterByDate: "Data de creació",
+    dateFrom: "Des de",
+    dateTo: "Fins a",
+    clearFilters: "Netejar filtres",
+    sortBy: "Ordenar per",
+    sort: {
+      severity: "Gravetat",
+      created: "Data de creació",
+      updated: "Última actualització",
+    } as Record<string, string>,
     // — historial —
     historyTitle: "Historial d'avaries",
     historyEmpty: "Cap event d'avaria encara.",
@@ -245,6 +273,8 @@ export const ca = {
     eventKind: {
       report: "Reportada",
       update: "Actualització",
+      edit: "Editada",
+      tags: "Etiquetes",
       resolve: "Solucionada",
       reopen: "Reoberta",
     } as Record<string, string>,

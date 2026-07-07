@@ -34,6 +34,8 @@ import type {
   FaultSeverity,
   FaultReportEvent,
   FaultUpdateEvent,
+  FaultEditEvent,
+  FaultTagsEvent,
   FaultResolveEvent,
   FaultReopenEvent,
   FaultBarrierEvent,
@@ -250,6 +252,22 @@ export function makeFaultUpdateEvent(
   payload: { text?: string; photoPath?: string },
 ): FaultUpdateEvent {
   return { ...base(ctx), type: 'fault_update', faultId, ...payload };
+}
+
+export function makeFaultEditEvent(
+  ctx: EventContext,
+  faultId: ID,
+  data: { title: string; description: string; severity: FaultSeverity },
+): FaultEditEvent {
+  return { ...base(ctx), type: 'fault_edit', faultId, ...data };
+}
+
+export function makeFaultTagsEvent(
+  ctx: EventContext,
+  faultId: ID,
+  tags: string[],
+): FaultTagsEvent {
+  return { ...base(ctx), type: 'fault_tags', faultId, tags };
 }
 
 export function makeFaultResolveEvent(

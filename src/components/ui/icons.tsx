@@ -63,6 +63,10 @@ import {
   Sun,
   ChevronUp,
   ChevronDown,
+  Tag,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Check,
   type LucideIcon,
 } from 'lucide-react';
 import type { StockDeltaReason } from '@/types/events';
@@ -126,6 +130,10 @@ export {
   Sun,
   ChevronUp,
   ChevronDown,
+  Tag,
+  SlidersHorizontal,
+  ArrowUpDown,
+  Check,
 };
 export type { LucideIcon };
 
@@ -175,13 +183,17 @@ export function resourceIcon(kind: ResourceKind): LucideIcon {
 
 /** Icona per a cada tipus d'event d'avaria a l'historial. */
 export function faultEventIcon(
-  type: 'report' | 'update' | 'resolve' | 'reopen',
+  type: 'report' | 'update' | 'edit' | 'tags' | 'resolve' | 'reopen',
 ): LucideIcon {
   switch (type) {
     case 'report':
       return AlertTriangle;
     case 'update':
       return MessageSquarePlus;
+    case 'edit':
+      return Pencil;
+    case 'tags':
+      return Tag;
     case 'resolve':
       return CheckCircle;
     case 'reopen':

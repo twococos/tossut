@@ -42,6 +42,8 @@ export type EventType =
   // ── avaries ──
   | 'fault_report' // reportar (crear) una avaria
   | 'fault_update' // actualització follow-up lligada a una avaria
+  | 'fault_edit' // editar metadades d'una avaria (títol/descripció/gravetat)
+  | 'fault_tags' // substituir la llista sencera d'etiquetes d'una avaria (LWW)
   | 'fault_resolve' // solucionar una avaria
   | 'fault_reopen' // reobrir una avaria solucionada (torna a actives)
   | 'fault_barrier' // reset de l'historial d'avaries (anàleg a stock_barrier 'reset')
@@ -240,6 +242,30 @@ export interface FaultUpdateEvent extends EventBase {
   photoPath?: string; // ruta a Storage (vegeu photoQueue); exclusiu amb `text`
 }
 
+/**
+ * Editar les metadades d'una avaria (títol, descripció, gravetat). No crea una avaria nova
+ * ni toca l'estat resolt/actualitzacions; només substitueix les metadades vigents.
+ */
+export interface FaultEditEvent extends EventBase {
+  type: 'fault_edit';
+  faultId: ID;
+  title: string;
+  description: string;
+  severity: FaultSeverity;
+}
+
+/**
+ * Substitueix la llista SENCERA d'etiquetes d'una avaria (last-writer-wins per ordre). Afegir
+ * i treure etiquetes són el mateix event amb la nova llista completa. Les etiquetes són strings
+ * normalitzats; el "catàleg" d'etiquetes existents es deriva de la unió de totes les avaries, de
+ * manera que una etiqueta que deixa d'estar a qualsevol avaria desapareix sola (sense tombstone).
+ */
+export interface FaultTagsEvent extends EventBase {
+  type: 'fault_tags';
+  faultId: ID;
+  tags: string[]; // llista completa, ja normalitzada i deduplicada pel command
+}
+
 /** Solucionar una avaria (surt de la llista d'actives). */
 export interface FaultResolveEvent extends EventBase {
   type: 'fault_resolve';
@@ -412,6 +438,8 @@ export type AppEvent =
   | GasSwapEvent
   | FaultReportEvent
   | FaultUpdateEvent
+  | FaultEditEvent
+  | FaultTagsEvent
   | FaultResolveEvent
   | FaultReopenEvent
   | FaultBarrierEvent

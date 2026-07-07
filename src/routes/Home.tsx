@@ -9,7 +9,6 @@ import {
   ThumbsUp,
   Book,
   Gauge,
-  AlertTriangle,
   Wrench,
   FileText,
   resourceIcon,

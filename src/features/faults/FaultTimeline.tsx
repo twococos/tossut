@@ -4,6 +4,8 @@ import { relativeFromNow } from '@/lib/time';
 import type {
   FaultReportEvent,
   FaultUpdateEvent,
+  FaultEditEvent,
+  FaultTagsEvent,
   FaultResolveEvent,
   FaultReopenEvent,
 } from '@/types/events';
@@ -12,6 +14,8 @@ import { t } from '@/text';
 export type FaultTimelineEvent =
   | FaultReportEvent
   | FaultUpdateEvent
+  | FaultEditEvent
+  | FaultTagsEvent
   | FaultResolveEvent
   | FaultReopenEvent;
 
@@ -21,6 +25,10 @@ function kindOf(ev: FaultTimelineEvent) {
       return 'report' as const;
     case 'fault_update':
       return 'update' as const;
+    case 'fault_edit':
+      return 'edit' as const;
+    case 'fault_tags':
+      return 'tags' as const;
     case 'fault_resolve':
       return 'resolve' as const;
     case 'fault_reopen':
@@ -51,6 +59,14 @@ export function FaultTimelineRow({ event }: { event: FaultTimelineEvent }) {
         ) : (
           <p className="mt-1 whitespace-pre-wrap text-sm text-boat-600">{event.text}</p>
         ))}
+      {event.type === 'fault_edit' && (
+        <p className="mt-1 whitespace-pre-wrap text-sm text-boat-600">{event.title}</p>
+      )}
+      {event.type === 'fault_tags' && (
+        <p className="mt-1 text-sm text-boat-600">
+          {event.tags.length > 0 ? event.tags.join(', ') : t.faults.noTags}
+        </p>
+      )}
       <div className="mt-1 text-xs text-boat-400">{event.userName}</div>
     </Card>
   );

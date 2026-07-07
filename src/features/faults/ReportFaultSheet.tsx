@@ -1,45 +1,58 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import type { FaultSeverity } from '@/types/events';
 import { SEVERITIES, SEVERITY_DOT } from '@/domain/faults/deriveFaults';
 import { t } from '@/text';
 
-/** Full per reportar (crear) una avaria: títol, descripció i gravetat. */
+/** Dades editables d'una avaria (títol, descripció, gravetat). */
+export interface FaultFormValue {
+  title: string;
+  description: string;
+  severity: FaultSeverity;
+}
+
+/**
+ * Full per crear o editar una avaria: títol, descripció i gravetat. En mode editar
+ * (`initial` informat) precarrega els valors i mostra la capçalera/botó d'edició; en mode
+ * crear parteix de buit i es reinicia en tancar.
+ */
 export function ReportFaultSheet({
   open,
   onClose,
   onSubmit,
+  initial,
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { title: string; description: string; severity: FaultSeverity }) => void;
+  onSubmit: (data: FaultFormValue) => void;
+  /** Si s'informa, el full funciona en mode editar (precarrega i canvia els textos). */
+  initial?: FaultFormValue;
 }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [severity, setSeverity] = useState<FaultSeverity>('yellow');
+  const editing = initial !== undefined;
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [severity, setSeverity] = useState<FaultSeverity>(initial?.severity ?? 'yellow');
 
-  function reset() {
-    setTitle('');
-    setDescription('');
-    setSeverity('yellow');
-  }
+  // En reobrir el full, sincronitza els camps amb els valors inicials (editar) o buida (crear).
+  useEffect(() => {
+    if (!open) return;
+    setTitle(initial?.title ?? '');
+    setDescription(initial?.description ?? '');
+    setSeverity(initial?.severity ?? 'yellow');
+  }, [open, initial]);
 
   function submit() {
     const trimmed = title.trim();
     if (!trimmed) return;
     onSubmit({ title: trimmed, description: description.trim(), severity });
-    reset();
   }
 
   return (
     <Sheet
       open={open}
-      onClose={() => {
-        reset();
-        onClose();
-      }}
-      title={t.faults.report}
+      onClose={onClose}
+      title={editing ? t.faults.editTitle : t.faults.report}
     >
       <div className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
@@ -83,7 +96,7 @@ export function ReportFaultSheet({
         </div>
 
         <Button onClick={submit} disabled={!title.trim()}>
-          {t.faults.report}
+          {editing ? t.faults.saveEdit : t.faults.report}
         </Button>
       </div>
     </Sheet>
