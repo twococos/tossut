@@ -12,18 +12,39 @@ body,
   height: 100%;
 }
 
+/* Android/Chrome (PWA standalone): sense això, el *swipe des de dalt* activa el
+   pull-to-refresh natiu, que fa overscroll elàstic de tot el document. Com que
+   l'scroll real viu al `<main>` intern, aquest overscroll del document desplaça el
+   layout i, en refrescar, Chrome el recalcula amb una alçada més gran que la visible:
+   la barra inferior queda sota el plec (només visible fent scroll fins baix) i llavors
+   la capçalera surt de vista. `overscroll-behavior: none` desactiva el pull-to-refresh
+   i l'encadenament d'scroll; fixar el `body` a la finestra impedeix que el document
+   arrel es mogui gens (tot l'scroll el gestiona el `<main>`). */
+html {
+  overscroll-behavior: none;
+}
+
 /* iOS (Safari i PWA standalone): `height: 100%`/`100vh` a l'arrel fa que la *layout
    viewport* (on s'ancora `position: fixed`) sigui més alta que l'àrea visible, de
    manera que la barra `fixed bottom-0` cau parcialment sota el home indicator i hi
    deixa un buit que varia segons el model. Fixar l'arrel a `100dvh` fa que la layout
-   viewport coincideixi amb la visible. `100vh` és el fallback per a navegadors antics. */
+   viewport coincideixi amb la visible. `100vh` és el fallback per a navegadors antics;
+   `100svh` (small viewport) és el més conservador i evita excedir l'àrea visible. */
 #root {
   height: 100vh;
+  height: 100svh;
   height: 100dvh;
 }
 
 body {
   margin: 0;
+  /* Bloqueja el pull-to-refresh i l'overscroll del document: tot l'scroll el gestiona
+     el `<main>` intern. `position: fixed; inset: 0` fixa el document a la finestra
+     visible perquè el gest de swipe des de dalt no desplaci ni recalculi el layout. */
+  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   /* Les zones segures (notch / home indicator) NO es compensen aquí: si el body
      porta padding-bottom, a iOS els elements `position: fixed; bottom: 0`

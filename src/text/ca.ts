@@ -80,7 +80,7 @@ export const ca = {
     buy: "Comprar",
     guide: "Guia",
     measure: "Mesura",
-    faults: "Avaries",
+    faults: "Manteniment",
     documents: "Documentació",
     estimatedDuration: "Durada estimada",
     noConsumption: "sense consum",
@@ -233,7 +233,8 @@ export const ca = {
     updatePhotoAlt: "Foto de l'actualització",
     photoUpdate: "Foto",
     resolve: "Solucionar",
-    resolveConfirm: "Marcar aquesta avaria com a solucionada? Sortirà de la llista (quedarà a l'historial).",
+    resolveConfirm:
+      "Marcar aquesta avaria com a solucionada? Sortirà de la llista (quedarà a l'historial).",
     updateBy: (who: string) => `per ${who}`,
     viewHistory: "Historial d'avaries",
     saveUpdate: "Desar",
@@ -268,6 +269,7 @@ export const ca = {
     backToCategories: "← Categories",
     /** Etiquetes de categoria. */
     category: {
+      guide: "Manual d'usuari",
       inspection: "Inspecció tècnica",
       homologation: "Homologacions",
       safety: "Material de seguretat",
@@ -319,10 +321,10 @@ export const ca = {
     edit: "Editar",
     renew: "Renovar",
     renewTitle: "Renovar document",
-    renewHint: "Adjunta el nou document i indica la nova validesa. L'anterior quedarà a l'historial.",
+    renewHint:
+      "Adjunta el nou document i indica la nova validesa. L'anterior quedarà a l'historial.",
     delete: "Eliminar document",
-    deleteConfirm:
-      "Eliminar aquest document? Sortirà de la llista però quedarà a l'historial.",
+    deleteConfirm: "Eliminar aquest document? Sortirà de la llista però quedarà a l'historial.",
     previousVersions: "Versions anteriors",
     previousVersionsTitle: "Versions anteriors",
     noPreviousVersions: "Aquest document no s'ha renovat mai.",
@@ -340,7 +342,8 @@ export const ca = {
     photoComment: "Foto",
     commentPhotoAlt: "Foto del comentari",
     deleteComment: "Eliminar",
-    deleteCommentConfirm: "Eliminar aquest comentari? Deixarà de mostrar-se (quedarà a l'historial).",
+    deleteCommentConfirm:
+      "Eliminar aquest comentari? Deixarà de mostrar-se (quedarà a l'historial).",
     saveComment: "Desar",
     commentBy: (who: string) => `per ${who}`,
     createdBy: (who: string) => `Creat per ${who}`,
@@ -457,8 +460,7 @@ export const ca = {
     bought: "Comprat!",
     expiryDate: "Data de caducitat",
     clearAll: "Buidar la llista",
-    clearConfirm:
-      "Es trauran TOTS els elements de la llista de la compra. Continuar?",
+    clearConfirm: "Es trauran TOTS els elements de la llista de la compra. Continuar?",
     history: "Historial",
     historyTitle: "Historial de la compra",
     historyEmpty: "Cap moviment a la llista encara.",
@@ -825,14 +827,11 @@ export const ca = {
       "El comptador local (localSeq) és més baix que el seq més alt del log: els canvis nous reutilitzaran números ja usats i el servidor els rebutjarà.",
     probDeviceMismatch:
       "L'ID de dispositiu a IndexedDB i a localStorage no coincideixen (possible reinici de dades).",
-    probNonUuid: (n: number) =>
-      `${n} esdeveniment(s) amb id no vàlid que el servidor rebutja.`,
+    probNonUuid: (n: number) => `${n} esdeveniment(s) amb id no vàlid que el servidor rebutja.`,
     repair: "Reparar i tornar a sincronitzar",
     repairing: "Reparant…",
     repairDone: (n: number) =>
-      n > 0
-        ? `${n} esdeveniment(s) reparat(s). Sincronitzant…`
-        : "No hi havia res a reparar.",
+      n > 0 ? `${n} esdeveniment(s) reparat(s). Sincronitzant…` : "No hi havia res a reparar.",
   },
 } as const
 
